@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Our Menu – Nargis Restaurant</title>
+  <meta name="description" content="Explore Nargis Restaurant's authentic Indian BBQ menu. Chicken Tikka, Fish Tikka, Paneer Tikka, and more charcoal-grilled specialties.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .menu-hero {
+      background: var(--charcoal);
+      padding: 120px 0 60px;
+      text-align: center;
+      color: var(--white);
+    }
+    .menu-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 900;
+    }
+    .menu-hero h1 span { color: var(--saffron); }
+    .menu-hero p {
+      color: rgba(255,255,255,.7);
+      max-width: 600px;
+      margin: 16px auto 0;
+      font-size: 1.1rem;
+    }
+    .menu-content {
+      padding: 60px 0;
+      background: var(--cream);
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,.6);
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .back-link:hover { color: var(--white); }
+    @media (max-width: 768px) {
+      .menu-hero { padding: 100px 0 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ OVERLAY ══════════════ -->
+<div id="overlay-bg" class="overlay-bg"></div>
+
+<!-- ══════════════ NAVBAR ══════════════ -->
+<nav id="navbar">
+  <div class="nav-inner container">
+    <a href="index.html" class="nav-logo">Nargis<span>.</span></a>
+    <div class="nav-links">
+      <a href="index.html#about">Our Story</a>
+      <a href="menu.html">Menu</a>
+      <a href="index.html#offers">Offers</a>
+      <a href="index.html#reservations">Reserve</a>
+      <a href="index.html#reviews">Reviews</a>
+      <a href="index.html#contact">Contact</a>
+      <a href="order.html" class="nav-cta">Order Now 🔥</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div id="mobile-menu" class="mobile-menu">
+  <a href="index.html#about">Our Story</a>
+  <a href="menu.html">Menu</a>
+  <a href="index.html#offers">Special Offers</a>
+  <a href="index.html#reservations">Reserve a Table</a>
+  <a href="index.html#reviews">Reviews</a>
+  <a href="index.html#contact">Contact</a>
+  <a href="order.html" class="nav-cta" style="margin-top:8px;text-align:center;padding:14px;border-radius:8px;">Order Online 🔥</a>
+</div>
+
+<!-- ══════════════ MENU HERO ══════════════ -->
+<section class="menu-hero">
+  <div class="container">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    <h1>Our <span>Menu</span></h1>
+    <p>Authentic Indian BBQ, charcoal-grilled to perfection. Every dish is a journey of flavour.</p>
+  </div>
+</section>
+
+<!-- ══════════════ MENU CONTENT ══════════════ -->
+<section class="menu-content">
+  <div class="container">
+    <div id="menu-tabs" class="menu-tabs"></div>
+    <div id="menu-grid" class="menu-grid"></div>
+    
+    <div style="text-align:center;margin-top:48px;">
+      <a href="order.html" class="btn-primary" style="padding:16px 48px;font-size:1.1rem;">
+        🛒 Start Your Order Now
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">Nargis<span>.</span></div>
+        <p class="footer-desc">Nairobi's legendary Indian BBQ restaurant. Three decades of charcoal-grilled perfection on School Lane.</p>
+        <div class="social-links">
+          <a href="#" class="social-link">f</a>
+          <a href="#" class="social-link">★</a>
+          <a href="tel:+254722793054" class="social-link">📞</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="index.html#about">Our Story</a></li>
+          <li><a href="menu.html">Full Menu</a></li>
+          <li><a href="index.html#offers">Special Offers</a></li>
+          <li><a href="index.html#reservations">Reserve a Table</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Order & Pay</h4>
+        <ul class="footer-links">
+          <li><a href="order.html">Order Online</a></li>
+          <li><a href="index.html#reservations">Table Deposit</a></li>
+          <li><a href="#" onclick="selectPayMethod('mpesa')">Pay with M-Pesa</a></li>
+          <li><a href="#" onclick="selectPayMethod('paypal')">Pay with PayPal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Visit Us</h4>
+        <ul class="footer-links">
+          <li><a href="https://maps.google.com" target="_blank">Get Directions</a></li>
+          <li><a href="tel:+254722793054">Call Us</a></li>
+          <li><a href="admin.html">Staff Login</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2024 Nargis Restaurant, Nairobi. All rights reserved.</div>
+      <div>Built with ❤ for authentic BBQ lovers</div>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>

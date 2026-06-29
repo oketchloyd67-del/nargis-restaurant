@@ -1,0 +1,182 @@
+{
+  "menu": [
+    {
+      "id": 1,
+      "category": "BBQ Specials",
+      "name": "Chicken Tikka",
+      "description": "Tender chunks of chicken marinated in aromatic spices, grilled over charcoal to smoky perfection.",
+      "price": 950,
+      "currency": "KES",
+      "spice": "medium",
+      "image": "https://images.unsplash.com/photo-1599487488170-d11ec9c172f0?w=600",
+      "popular": true,
+      "vegetarian": false
+    },
+    {
+      "id": 2,
+      "category": "BBQ Specials",
+      "name": "Fish Tikka",
+      "description": "Fresh Kenyan fish fillets marinated in tangy tikka masala, flame-grilled for a flaky, smoky bite.",
+      "price": 1100,
+      "currency": "KES",
+      "spice": "medium",
+      "image": "https://images.unsplash.com/photo-1627308595229-7830a5c18106?w=600",
+      "popular": true,
+      "vegetarian": false
+    },
+    {
+      "id": 3,
+      "category": "BBQ Specials",
+      "name": "Paneer Tikka",
+      "description": "Soft cottage cheese cubes with capsicum and onions, charred beautifully in a tandoor-style grill.",
+      "price": 850,
+      "currency": "KES",
+      "spice": "mild",
+      "image": "https://images.unsplash.com/photo-1567188040759-fb8a883dc6d8?w=600",
+      "popular": false,
+      "vegetarian": true
+    },
+    {
+      "id": 4,
+      "category": "BBQ Specials",
+      "name": "Chicken Chooza",
+      "description": "Whole spring chicken marinated overnight in signature Nargis spice blend, slow-roasted over open flame.",
+      "price": 1800,
+      "currency": "KES",
+      "spice": "hot",
+      "image": "https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=600",
+      "popular": true,
+      "vegetarian": false
+    },
+    {
+      "id": 5,
+      "category": "Starters",
+      "name": "Seekh Kebab",
+      "description": "Hand-minced spiced meat pressed onto skewers and grilled over charcoal embers.",
+      "price": 800,
+      "currency": "KES",
+      "spice": "medium",
+      "image": "https://images.unsplash.com/photo-1544025162-d76694d05650?w=600",
+      "popular": false,
+      "vegetarian": false
+    },
+    {
+      "id": 6,
+      "category": "Starters",
+      "name": "Samosa (4 pcs)",
+      "description": "Crisp golden pastry filled with spiced potatoes and peas, served with tamarind chutney.",
+      "price": 400,
+      "currency": "KES",
+      "spice": "mild",
+      "image": "https://images.unsplash.com/photo-1601050690597-df0568f70950?w=600",
+      "popular": false,
+      "vegetarian": true
+    },
+    {
+      "id": 7,
+      "category": "Breads",
+      "name": "Garlic Naan",
+      "description": "Fluffy leavened bread brushed with garlic butter, baked in a clay tandoor.",
+      "price": 200,
+      "currency": "KES",
+      "spice": "none",
+      "image": "https://images.unsplash.com/photo-1562802378-063ec186a863?w=600",
+      "popular": false,
+      "vegetarian": true
+    },
+    {
+      "id": 8,
+      "category": "Drinks",
+      "name": "Mango Lassi",
+      "description": "Chilled blended yoghurt with fresh Kenyan mangoes, slightly sweet and perfectly refreshing.",
+      "price": 350,
+      "currency": "KES",
+      "spice": "none",
+      "image": "https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?w=600",
+      "popular": true,
+      "vegetarian": true
+    }
+  ],
+  "special_offers": [
+    {
+      "id": "offer1",
+      "title": "Family Feast",
+      "description": "2x Chicken Tikka + 1x Chicken Chooza + 4x Garlic Naan + 2x Mango Lassi",
+      "original_price": 5700,
+      "offer_price": 4500,
+      "currency": "KES",
+      "valid_until": "2026-08-31",
+      "badge": "Save KES 1,200"
+    },
+    {
+      "id": "offer2",
+      "title": "BBQ Duo",
+      "description": "Fish Tikka + Chicken Tikka + 2x Garlic Naan",
+      "original_price": 2450,
+      "offer_price": 1999,
+      "currency": "KES",
+      "valid_until": "2026-07-31",
+      "badge": "Save KES 451"
+    },
+    {
+      "id": "offer3",
+      "title": "Vegetarian Delight",
+      "description": "Paneer Tikka + Samosa (4pcs) + Garlic Naan + Mango Lassi",
+      "original_price": 1800,
+      "offer_price": 1400,
+      "currency": "KES",
+      "valid_until": "2026-12-31",
+      "badge": "Save KES 400"
+    }
+  ],
+  "reviews": [
+    {
+      "id": "r1",
+      "author": "Shemina S.",
+      "platform": "TripAdvisor",
+      "rating": 5,
+      "date": "2025-10-13",
+      "text": "Nargis Restaurant is a long-standing, beloved culinary institution in Nairobi. Renowned for its truly delicious barbeque — the menu offers a tempting array of expertly grilled dishes. The chicken tikka is simply outstanding.",
+      "type": "dine-in",
+      "visitor": "local",
+      "approved": true
+    },
+    {
+      "id": "r2",
+      "author": "Jasmine A.",
+      "platform": "TripAdvisor",
+      "rating": 4,
+      "date": "2024-04-24",
+      "text": "You go to this restaurant for the DELICIOUS spicy BBQ meat. The flavours are incredible — smoky, spiced, and authentic. One of Nairobi's hidden gems for Indian BBQ lovers.",
+      "type": "dine-in",
+      "visitor": "tourist",
+      "approved": true
+    },
+    {
+      "id": "r3",
+      "author": "Yasmin R. Mawani",
+      "platform": "Facebook",
+      "rating": 5,
+      "date": "2023-10-05",
+      "text": "Most amazing delicious food with outstanding services. Highly recommended to try! The chicken chooza was a revelation — tender, perfectly spiced, and smoky. Will be back soon!",
+      "type": "dine-in",
+      "visitor": "local",
+      "approved": true
+    },
+    {
+      "id": "r4",
+      "author": "TrailBlazer1152",
+      "platform": "TripAdvisor",
+      "rating": 2,
+      "date": "2026-06-18",
+      "text": "Ordered takeaway and unfortunately had a billing issue. Hope management addresses transparency with receipts. The food itself was still tasty.",
+      "type": "takeaway",
+      "visitor": "local",
+      "approved": true
+    }
+  ],
+  "orders": [],
+  "reservations": [],
+  "pending_reviews": [],
+  "pending_transactions": []
+}

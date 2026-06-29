@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Online – Nargis Restaurant</title>
+  <meta name="description" content="Order authentic Indian BBQ online from Nargis Restaurant Nairobi. Fresh, charcoal-grilled, and delivered to your door.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Order page specific styles */
+    .order-hero {
+      background: var(--charcoal);
+      padding: 120px 0 60px;
+      text-align: center;
+      color: var(--white);
+    }
+    .order-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 900;
+      color: var(--white);
+    }
+    .order-hero h1 span { color: var(--saffron); }
+    .order-hero p {
+      color: rgba(255,255,255,.7);
+      max-width: 600px;
+      margin: 16px auto 0;
+      font-size: 1.1rem;
+    }
+    .order-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      margin: 40px 0;
+    }
+    .order-step {
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: var(--r-md);
+      padding: 32px 20px;
+      text-align: center;
+    }
+    .order-step .step-icon {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 12px;
+    }
+    .order-step .step-num {
+      display: inline-block;
+      background: var(--ember);
+      color: var(--white);
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      line-height: 32px;
+      font-weight: 700;
+      font-size: .85rem;
+      margin-bottom: 12px;
+    }
+    .order-step h3 {
+      font-family: 'Playfair Display', serif;
+      color: var(--white);
+      font-size: 1.1rem;
+      margin-bottom: 8px;
+    }
+    .order-step p {
+      color: rgba(255,255,255,.5);
+      font-size: .9rem;
+    }
+    .order-content {
+      padding: 60px 0;
+      background: var(--cream);
+    }
+    .order-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 40px;
+    }
+    .order-sidebar {
+      background: var(--white);
+      border-radius: var(--r-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-card);
+      position: sticky;
+      top: 100px;
+      height: fit-content;
+    }
+    .order-sidebar h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      margin-bottom: 16px;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .back-link:hover { color: var(--ember); }
+    .delivery-info {
+      background: var(--ash);
+      border-radius: var(--r-sm);
+      padding: 16px;
+      margin-bottom: 20px;
+    }
+    .delivery-info p {
+      font-size: .85rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .delivery-info strong { color: var(--charcoal); }
+    @media (max-width: 768px) {
+      .order-grid { grid-template-columns: 1fr; }
+      .order-sidebar { position: static; }
+      .order-hero { padding: 100px 0 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ OVERLAY ══════════════ -->
+<div id="overlay-bg" class="overlay-bg"></div>
+
+<!-- ══════════════ NAVBAR ══════════════ -->
+<nav id="navbar">
+  <div class="nav-inner container">
+    <a href="index.html" class="nav-logo">Nargis<span>.</span></a>
+    <div class="nav-links">
+      <a href="index.html#about">Our Story</a>
+      <a href="index.html#menu">Menu</a>
+      <a href="index.html#offers">Offers</a>
+      <a href="index.html#reservations">Reserve</a>
+      <a href="index.html#reviews">Reviews</a>
+      <a href="index.html#contact">Contact</a>
+      <a href="order.html" class="nav-cta">Order Now 🔥</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div id="mobile-menu" class="mobile-menu">
+  <a href="index.html#about">Our Story</a>
+  <a href="index.html#menu">Menu</a>
+  <a href="index.html#offers">Special Offers</a>
+  <a href="index.html#reservations">Reserve a Table</a>
+  <a href="index.html#reviews">Reviews</a>
+  <a href="index.html#contact">Contact</a>
+  <a href="order.html" class="nav-cta" style="margin-top:8px;text-align:center;padding:14px;border-radius:8px;">Order Online 🔥</a>
+</div>
+
+<!-- ══════════════ ORDER HERO ══════════════ -->
+<section class="order-hero">
+  <div class="container">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    <h1>Order Online <span>Now</span></h1>
+    <p>Choose your favourite BBQ dishes, customize your order, and we'll have it ready for pickup or delivery.</p>
+    
+    <div class="order-steps">
+      <div class="order-step">
+        <span class="step-icon">📋</span>
+        <span class="step-num">1</span>
+        <h3>Browse Menu</h3>
+        <p>Explore our authentic Indian BBQ dishes</p>
+      </div>
+      <div class="order-step">
+        <span class="step-icon">🛒</span>
+        <span class="step-num">2</span>
+        <h3>Add to Cart</h3>
+        <p>Select items and add to your order</p>
+      </div>
+      <div class="order-step">
+        <span class="step-icon">💳</span>
+        <span class="step-num">3</span>
+        <h3>Pay Securely</h3>
+        <p>Use M-Pesa or PayPal to complete payment</p>
+      </div>
+      <div class="order-step">
+        <span class="step-icon">🍽</span>
+        <span class="step-num">4</span>
+        <h3>Enjoy!</h3>
+        <p>Pick up or get it delivered to your doorstep</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ ORDER CONTENT ══════════════ -->
+<section class="order-content">
+  <div class="container">
+    <div class="order-grid">
+      <!-- Left: Menu -->
+      <div>
+        <div id="menu-tabs" class="menu-tabs"></div>
+        <div id="menu-grid" class="menu-grid"></div>
+      </div>
+      
+      <!-- Right: Cart Sidebar (embedded) -->
+      <div class="order-sidebar">
+        <h3>🛒 Your Order</h3>
+        <div class="delivery-info">
+          <p>
+            <strong>📍 Pickup:</strong> School Lane, Nairobi<br>
+            <strong>🚚 Delivery:</strong> Available within Nairobi CBD
+          </p>
+        </div>
+        <div id="cart-items" class="cart-items"></div>
+        <div id="cart-totals" class="cart-footer" style="display:none"></div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--ash);">
+          <a href="index.html#menu" class="btn-add-cart" style="text-align:center;display:block;background:var(--ember);color:var(--white);padding:12px;border-radius:var(--r-sm);text-decoration:none;font-weight:600;">
+            ← Continue Browsing Full Menu
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">Nargis<span>.</span></div>
+        <p class="footer-desc">Nairobi's legendary Indian BBQ restaurant. Three decades of charcoal-grilled perfection on School Lane.</p>
+        <div class="social-links">
+          <a href="#" class="social-link">f</a>
+          <a href="#" class="social-link">★</a>
+          <a href="tel:+254722793054" class="social-link">📞</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="index.html#about">Our Story</a></li>
+          <li><a href="index.html#menu">Full Menu</a></li>
+          <li><a href="index.html#offers">Special Offers</a></li>
+          <li><a href="index.html#reservations">Reserve a Table</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Order & Pay</h4>
+        <ul class="footer-links">
+          <li><a href="order.html">Order Online</a></li>
+          <li><a href="index.html#reservations">Table Deposit</a></li>
+          <li><a href="#" onclick="selectPayMethod('mpesa')">Pay with M-Pesa</a></li>
+          <li><a href="#" onclick="selectPayMethod('paypal')">Pay with PayPal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Visit Us</h4>
+        <ul class="footer-links">
+          <li><a href="https://maps.google.com" target="_blank">Get Directions</a></li>
+          <li><a href="tel:+254722793054">Call Us</a></li>
+          <li><a href="admin.html">Staff Login</a></li>
+        </ul>
+        <div style="margin-top:20px;padding:14px;background:rgba(255,255,255,.05);border-radius:8px;">
+          <div style="font-size:.72rem;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;">We Accept</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <span style="background:#00A550;color:#fff;padding:4px 10px;border-radius:4px;font-size:.75rem;font-weight:700">M-PESA</span>
+            <span style="background:#003087;color:#fff;padding:4px 10px;border-radius:4px;font-size:.75rem;font-weight:700">PayPal</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2024 Nargis Restaurant, Nairobi. All rights reserved.</div>
+      <div>Built with ❤ for authentic BBQ lovers</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══════════════ PAYMENT MODAL ══════════════ -->
+<div id="payment-modal">
+  <div class="payment-card">
+    <div class="payment-header">
+      <h3>💳 Complete Payment</h3>
+      <button class="modal-close" onclick="closePaymentModal()">✕</button>
+    </div>
+    <div class="payment-body">
+      <div class="payment-amount">
+        <div class="label" id="payment-amount-label">Order Total</div>
+        <div class="amount" id="payment-amount-value">KES 0</div>
+      </div>
+
+      <div class="payment-methods">
+        <button class="pay-method-btn" data-method="mpesa" onclick="selectPayMethod('mpesa')">
+          <span class="pay-method-icon">📱</span>
+          <span>M-Pesa</span>
+        </button>
+        <button class="pay-method-btn" data-method="paypal" onclick="selectPayMethod('paypal');loadPayPal()">
+          <span class="pay-method-icon">🌐</span>
+          <span>PayPal</span>
+        </button>
+      </div>
+
+      <div class="mpesa-form">
+        <div class="mpesa-logo">
+          <span style="font-size:1.5rem">📱</span>
+          <span>Lipa Na M-Pesa</span>
+        </div>
+        <div class="form-group">
+          <label>M-Pesa Phone Number</label>
+          <input type="tel" id="mpesa-phone" placeholder="e.g. 0712 345678" style="width:100%;padding:12px 16px;border:1.5px solid #E0D5C8;border-radius:8px;font-size:.95rem;outline:none">
+        </div>
+        <p style="font-size:.82rem;color:#8C7A6A;margin-bottom:12px;line-height:1.6">
+          💡 You'll receive an STK Push on your phone. Enter your M-Pesa PIN to confirm payment.
+        </p>
+        <button id="btn-mpesa-pay" class="btn-pay" onclick="processMpesa()">Send M-Pesa Request</button>
+      </div>
+
+      <div class="paypal-form">
+        <p style="font-size:.82rem;color:#8C7A6A;margin-bottom:16px;line-height:1.6">
+          Note: PayPal processes in USD. Amount will be converted at the current rate.
+        </p>
+        <div id="paypal-btn-container"></div>
+      </div>
+
+      <div class="payment-secure">
+        🔒 Payments are encrypted and secure
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+// Override menu click to use order.html menu
+document.addEventListener('DOMContentLoaded', () => {
+  // Re-initialize cart for order page
+  renderCart();
+  updateCartBadge();
+});
+</script>
+</body>
+</html>

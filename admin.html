@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard – Nargis Restaurant</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ══════════════ LOGIN SCREEN ══════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Nargis<span>.</span></div>
+    <div class="login-subtitle">Restaurant Admin Portal</div>
+    <form class="login-form" id="login-form" novalidate>
+      <div class="form-group">
+        <label for="admin-user">Username</label>
+        <input type="text" id="admin-user" placeholder="Enter username" autocomplete="username" required>
+      </div>
+      <div class="form-group">
+        <label for="admin-pass">Password</label>
+        <input type="password" id="admin-pass" placeholder="Enter password" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn-login">Sign In to Dashboard</button>
+      <div id="login-error" class="login-error">Invalid username or password.</div>
+    </form>
+    <div style="margin-top:20px;font-size:.78rem;color:#8C7A6A">
+      🔒 Secured access · Staff only
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════ ADMIN APP ══════════════ -->
+<div id="admin-app">
+
+  <!-- SIDEBAR -->
+  <aside class="admin-sidebar">
+    <div class="sidebar-brand">
+      <h2>Nargis<span>.</span></h2>
+      <p>Admin Dashboard</p>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section-label">Main</div>
+      <div class="nav-item active" data-panel="dashboard" onclick="showPanel('dashboard')">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-section-label">Orders & Bookings</div>
+      <div class="nav-item" data-panel="orders" onclick="showPanel('orders')">
+        <span class="icon">🍽</span> Orders
+      </div>
+      <div class="nav-item" data-panel="reservations" onclick="showPanel('reservations')">
+        <span class="icon">📅</span> Reservations
+      </div>
+      <div class="nav-section-label">Content</div>
+      <div class="nav-item" data-panel="reviews" onclick="showPanel('reviews')">
+        <span class="icon">⭐</span> Reviews
+        <span id="pending-badge" class="badge-pending">0</span>
+      </div>
+      <div class="nav-item" data-panel="menu" onclick="showPanel('menu')">
+        <span class="icon">📋</span> Menu Items
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div style="font-size:.78rem;color:rgba(255,255,255,.35);margin-bottom:10px">
+        Logged in as <strong style="color:rgba(255,255,255,.6)">admin</strong>
+      </div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="admin-main">
+    <div class="admin-topbar">
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-right">
+        <span>📧 oketchloyd67@gmail.com</span>
+        <span>Nargis Restaurant</span>
+        <span style="color:#2E7D32;font-weight:600">● Online</span>
+      </div>
+    </div>
+
+    <div class="admin-content">
+
+      <!-- ── DASHBOARD PANEL ── -->
+      <div id="panel-dashboard" class="panel active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon orange">💰</div>
+            <div>
+              <div class="stat-label">Total Revenue</div>
+              <div class="stat-value" id="stat-revenue">KES 0</div>
+              <div class="stat-sub">All time</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">🛒</div>
+            <div>
+              <div class="stat-label">Total Orders</div>
+              <div class="stat-value" id="stat-orders">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">📅</div>
+            <div>
+              <div class="stat-label">Reservations</div>
+              <div class="stat-value" id="stat-reservations">0</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon amber">⭐</div>
+            <div>
+              <div class="stat-label">Pending Reviews</div>
+              <div class="stat-value" id="stat-pending">0</div>
+              <div class="stat-sub" style="color:#E65100">Needs approval</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div style="padding:20px 24px;border-bottom:1px solid #E8DDD0;display:flex;justify-content:space-between;align-items:center">
+            <div class="panel-title">Recent Activity</div>
+            <div style="font-size:.82rem;color:#8C7A6A">Latest 10 events</div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th><th>Type</th><th>Details</th><th>Amount</th><th>Date & Time</th>
+              </tr>
+            </thead>
+            <tbody id="recent-activity">
+              <tr class="empty-row"><td colspan="5">No activity yet. Place an order on the main site to see it here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top:24px;padding:20px;background:#FFF3E0;border:1px solid #FFB74D;border-radius:12px;">
+          <div style="font-weight:700;margin-bottom:8px;color:#E65100">⚡ Quick Actions</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button class="btn-primary-sm" onclick="showPanel('orders')">View All Orders</button>
+            <button class="btn-primary-sm" onclick="showPanel('reservations')">View Reservations</button>
+            <button class="btn-primary-sm" onclick="showPanel('reviews')">Moderate Reviews</button>
+            <button class="btn-primary-sm" onclick="showPanel('menu')">Manage Menu</button>
+            <button class="btn-primary-sm" onclick="exportCSV('orders')" style="background:#2E7D32">Export Orders CSV</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ORDERS PANEL ── -->
+      <div id="panel-orders" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">All Orders</div>
+          <div class="panel-actions">
+            <select class="filter-select" onchange="loadOrders(this.value)">
+              <option value="all">All Status</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+            <button class="btn-primary-sm" onclick="exportCSV('orders')">⬇ Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Order ID</th><th>Items</th><th>Total</th><th>Status</th><th>Method</th><th>Date</th><th>Action</th></tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr class="empty-row"><td colspan="7">No orders yet. Orders placed on the website will appear here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── RESERVATIONS PANEL ── -->
+      <div id="panel-reservations" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Reservations</div>
+          <div class="panel-actions">
+            <select class="filter-select" onchange="loadReservations(this.value)">
+              <option value="all">All Status</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="pending">Pending</option>
+            </select>
+            <button class="btn-primary-sm" onclick="exportCSV('reservations')">⬇ Export CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Phone</th><th>Date & Time</th><th>Guests</th><th>Status</th><th>Deposit</th><th>Action</th></tr>
+            </thead>
+            <tbody id="reservations-tbody">
+              <tr class="empty-row"><td colspan="8">No reservations yet. Table bookings will appear here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── REVIEWS PANEL ── -->
+      <div id="panel-reviews" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Reviews Moderation <span id="pending-count" style="font-size:.85rem;color:#8C7A6A;font-weight:400"></span></div>
+          <div class="panel-actions">
+            <select class="filter-select" id="review-filter" onchange="loadReviews(this.value)">
+              <option value="pending">Pending Approval</option>
+            </select>
+          </div>
+        </div>
+        <div style="background:#FFF3E0;border:1px solid #FFB74D;border-radius:8px;padding:14px 16px;margin-bottom:16px;font-size:.85rem;color:#5D4037;">
+          ⚠️ Reviews submitted on the website appear here first. Approve to publish them to the public, or reject to discard them.
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Author</th><th>Rating</th><th>Visit Type</th><th>Review</th><th>Date</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="reviews-tbody">
+              <tr class="empty-row"><td colspan="6">No pending reviews. New submissions will appear here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── MENU PANEL ── -->
+      <div id="panel-menu" class="panel">
+        <div class="panel-header">
+          <div class="panel-title">Menu Items</div>
+          <div class="panel-actions">
+            <button class="btn-primary-sm" onclick="openAddMenuItem()">➕ Add Item</button>
+            <button class="btn-primary-sm" onclick="refreshMenu()" style="background:#2E7D32">🔄 Refresh</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Image</th>
+                <th>Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Type</th>
+                <th>Popular</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="menu-tbody">
+              <tr class="empty-row"><td colspan="8">Loading menu...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /admin-content -->
+  </main>
+</div><!-- /admin-app -->
+
+<!-- ── DETAIL MODAL ── -->
+<div id="detail-modal" class="admin-modal-bg">
+  <div class="admin-modal">
+    <div class="admin-modal-header">
+      <h3 id="detail-modal-title">Details</h3>
+      <button class="modal-close-btn" onclick="closeDetailModal()">✕</button>
+    </div>
+    <div class="admin-modal-body" id="detail-modal-body"></div>
+  </div>
+</div>
+
+<!-- ── ADD/EDIT MENU ITEM MODAL ── -->
+<div id="menu-modal" class="admin-modal-bg">
+  <div class="admin-modal" style="max-width:600px;">
+    <div class="admin-modal-header">
+      <h3 id="menu-modal-title">➕ Add New Menu Item</h3>
+      <button class="modal-close-btn" onclick="closeMenuModal()">✕</button>
+    </div>
+    <div class="admin-modal-body">
+      <form id="menu-form" onsubmit="saveMenuItem(event)">
+        <input type="hidden" id="menu-edit-id" value="">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Item Name *</label>
+            <input type="text" id="menu-name" placeholder="e.g. Butter Chicken" required>
+          </div>
+          <div class="form-group">
+            <label>Price (KES) *</label>
+            <input type="number" id="menu-price" placeholder="e.g. 950" required min="1">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Category *</label>
+            <select id="menu-category" required>
+              <option value="BBQ Specials">BBQ Specials</option>
+              <option value="Starters">Starters</option>
+              <option value="Breads">Breads</option>
+              <option value="Drinks">Drinks</option>
+              <option value="Desserts">Desserts</option>
+              <option value="Main Course">Main Course</option>
+              <option value="Sides">Sides</option>
+              <option value="Salads">Salads</option>
+              <option value="new">+ Create New Category</option>
+            </select>
+          </div>
+          <div class="form-group" id="new-category-group" style="display:none;">
+            <label>New Category Name</label>
+            <input type="text" id="menu-new-category" placeholder="e.g. Seafood">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Description *</label>
+          <textarea id="menu-description" rows="2" placeholder="Brief description of the dish..." required></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Spice Level</label>
+            <select id="menu-spice">
+              <option value="none">None</option>
+              <option value="mild">Mild</option>
+              <option value="medium" selected>Medium</option>
+              <option value="hot">Hot</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Image URL</label>
+            <input type="url" id="menu-image" placeholder="https://images.unsplash.com/photo-...?w=600">
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="menu-popular"> 
+              <span>⭐ Mark as Popular</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+              <input type="checkbox" id="menu-vegetarian"> 
+              <span>🌿 Vegetarian</span>
+            </label>
+          </div>
+        </div>
+        
+        <div style="display:flex;gap:10px;margin-top:20px;">
+          <button type="submit" class="btn-primary-sm" style="padding:12px 32px;" id="menu-submit-btn">💾 Save Item</button>
+          <button type="button" class="btn-sm btn-reject" onclick="closeMenuModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="admin.js"></script>
+</body>
+</html>

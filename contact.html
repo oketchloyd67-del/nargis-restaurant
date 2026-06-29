@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us – Nargis Restaurant</title>
+  <meta name="description" content="Visit Nargis Restaurant on School Lane, Nairobi. Call +254 722 793054 or email oketchloyd67@gmail.com.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    .contact-hero {
+      background: var(--charcoal);
+      padding: 120px 0 60px;
+      text-align: center;
+      color: var(--white);
+    }
+    .contact-hero h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 900;
+    }
+    .contact-hero h1 span { color: var(--saffron); }
+    .contact-hero p {
+      color: rgba(255,255,255,.7);
+      max-width: 600px;
+      margin: 16px auto 0;
+      font-size: 1.1rem;
+    }
+    .contact-content {
+      padding: 60px 0;
+      background: var(--ash);
+    }
+    .contact-wrapper {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 48px;
+      align-items: start;
+    }
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: rgba(255,255,255,.6);
+      margin-bottom: 20px;
+      transition: var(--transition);
+    }
+    .back-link:hover { color: var(--white); }
+    @media (max-width: 768px) {
+      .contact-wrapper { grid-template-columns: 1fr; }
+      .contact-hero { padding: 100px 0 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════ OVERLAY ══════════════ -->
+<div id="overlay-bg" class="overlay-bg"></div>
+
+<!-- ══════════════ NAVBAR ══════════════ -->
+<nav id="navbar">
+  <div class="nav-inner container">
+    <a href="index.html" class="nav-logo">Nargis<span>.</span></a>
+    <div class="nav-links">
+      <a href="index.html#about">Our Story</a>
+      <a href="menu.html">Menu</a>
+      <a href="offers.html">Offers</a>
+      <a href="reserve.html">Reserve</a>
+      <a href="index.html#reviews">Reviews</a>
+      <a href="contact.html">Contact</a>
+      <a href="order.html" class="nav-cta">Order Now 🔥</a>
+    </div>
+    <button class="hamburger" id="hamburger" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<div id="mobile-menu" class="mobile-menu">
+  <a href="index.html#about">Our Story</a>
+  <a href="menu.html">Menu</a>
+  <a href="offers.html">Special Offers</a>
+  <a href="reserve.html">Reserve a Table</a>
+  <a href="index.html#reviews">Reviews</a>
+  <a href="contact.html">Contact</a>
+  <a href="order.html" class="nav-cta" style="margin-top:8px;text-align:center;padding:14px;border-radius:8px;">Order Online 🔥</a>
+</div>
+
+<!-- ══════════════ CONTACT HERO ══════════════ -->
+<section class="contact-hero">
+  <div class="container">
+    <a href="index.html" class="back-link">← Back to Home</a>
+    <h1>Get in <span>Touch</span></h1>
+    <p>We'd love to hear from you. Whether it's a question, feedback, or just to say hello — reach out!</p>
+  </div>
+</section>
+
+<!-- ══════════════ CONTACT CONTENT ══════════════ -->
+<section class="contact-content">
+  <div class="container">
+    <div class="contact-wrapper">
+      <!-- Contact Info -->
+      <div class="contact-info">
+        <h3>📍 Visit Us</h3>
+        
+        <div class="contact-item">
+          <div class="contact-icon">📍</div>
+          <div>
+            <div class="contact-item-label">Location</div>
+            <div class="contact-item-value">School Lane, Nairobi, Kenya<br><span style="color:#8C7A6A;font-size:.85rem">Off Koinange Street</span></div>
+          </div>
+        </div>
+        
+        <div class="contact-item">
+          <div class="contact-icon">📞</div>
+          <div>
+            <div class="contact-item-label">Phone & WhatsApp</div>
+            <div class="contact-item-value"><a href="tel:+254722793054">+254 722 793054</a></div>
+          </div>
+        </div>
+        
+        <div class="contact-item">
+          <div class="contact-icon">✉️</div>
+          <div>
+            <div class="contact-item-label">Email</div>
+            <div class="contact-item-value"><a href="mailto:oketchloyd67@gmail.com">oketchloyd67@gmail.com</a></div>
+          </div>
+        </div>
+        
+        <div class="contact-item">
+          <div class="contact-icon">🕐</div>
+          <div>
+            <div class="contact-item-label">Opening Hours</div>
+            <div class="hours-table">
+              <div class="hours-row"><span class="day">Monday – Thursday</span><span class="time">11:00 – 22:00</span></div>
+              <div class="hours-row"><span class="day">Friday – Saturday</span><span class="time">11:00 – 23:00</span></div>
+              <div class="hours-row"><span class="day">Sunday</span><span class="time">12:00 – 21:00</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map -->
+      <div class="map-embed" style="height:480px;">
+        <iframe
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.819285!2d36.7966957!3d-1.2597530!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f10d6b6a8f1ab%3A0x5d7c1b85b6e02ca0!2sNargis+Restaurant!5e0!3m2!1sen!2ske!4v1620000000000"
+          allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"
+          title="Nargis Restaurant Location" style="width:100%;height:100%;border:none;border-radius:var(--r-lg);"></iframe>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ FOOTER ══════════════ -->
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div class="footer-logo">Nargis<span>.</span></div>
+        <p class="footer-desc">Nairobi's legendary Indian BBQ restaurant. Three decades of charcoal-grilled perfection on School Lane.</p>
+        <div class="social-links">
+          <a href="#" class="social-link">f</a>
+          <a href="#" class="social-link">★</a>
+          <a href="tel:+254722793054" class="social-link">📞</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Quick Links</h4>
+        <ul class="footer-links">
+          <li><a href="index.html#about">Our Story</a></li>
+          <li><a href="menu.html">Full Menu</a></li>
+          <li><a href="offers.html">Special Offers</a></li>
+          <li><a href="reserve.html">Reserve a Table</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Order & Pay</h4>
+        <ul class="footer-links">
+          <li><a href="order.html">Order Online</a></li>
+          <li><a href="reserve.html">Table Deposit</a></li>
+          <li><a href="#" onclick="selectPayMethod('mpesa')">Pay with M-Pesa</a></li>
+          <li><a href="#" onclick="selectPayMethod('paypal')">Pay with PayPal</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Visit Us</h4>
+        <ul class="footer-links">
+          <li><a href="https://maps.google.com" target="_blank">Get Directions</a></li>
+          <li><a href="tel:+254722793054">Call Us</a></li>
+          <li><a href="admin.html">Staff Login</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <div>&copy; 2024 Nargis Restaurant, Nairobi. All rights reserved.</div>
+      <div>Built with ❤ for authentic BBQ lovers</div>
+    </div>
+  </div>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
