@@ -4,6 +4,8 @@
 // ===========================
 
 // ── CONFIG ──
+// Get backend URL from environment or use default
+// In production, this is set via Render environment variable
 const BACKEND_URL = window.BACKEND_URL || '';
 
 let currentPanel = 'dashboard';
@@ -27,8 +29,10 @@ async function login() {
   // Show loading state
   loginBtn.textContent = 'Logging in...';
   loginBtn.disabled = true;
+  err.style.display = 'none';
 
   try {
+    // Use full backend URL if available, otherwise use relative path
     const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/login` : '/api/admin/login';
     console.log('📤 Sending login request to:', url);
     
@@ -45,7 +49,16 @@ async function login() {
     });
 
     console.log('📥 Response status:', response.status);
-    const result = await response.json();
+    
+    let result;
+    try {
+      result = await response.json();
+    } catch (e) {
+      const text = await response.text();
+      console.error('❌ Non-JSON response:', text);
+      throw new Error('Server returned invalid response');
+    }
+    
     console.log('📥 Response data:', result);
 
     if (response.ok && result.success) {
@@ -59,10 +72,10 @@ async function login() {
       setTimeout(() => err.style.display = 'none', 3000);
     }
   } catch (error) {
-    console.error('❌ Login error:', error);
+    console.error('❌ Login error details:', error);
     err.style.display = 'block';
-    err.textContent = 'Network error. Please check your connection and try again.';
-    setTimeout(() => err.style.display = 'none', 4000);
+    err.textContent = `Network error: ${error.message || 'Please check your connection.'}`;
+    setTimeout(() => err.style.display = 'none', 5000);
   } finally {
     loginBtn.textContent = 'Sign In to Dashboard';
     loginBtn.disabled = false;
@@ -94,6 +107,8 @@ async function verifyAdminSession() {
   
   try {
     const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/verify` : '/api/admin/verify';
+    console.log('🔍 Verifying token at:', url);
+    
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`
@@ -963,6 +978,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔐 Admin panel loading...');
+  console.log('📡 Backend URL:', BACKEND_URL || '(using relative path)');
   
   // Verify admin session
   const isValid = await verifyAdminSession();
