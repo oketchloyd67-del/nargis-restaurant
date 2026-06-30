@@ -1,14 +1,29 @@
 // ===========================
 //  NARGIS RESTAURANT – APP.JS
+//  Complete Frontend with Backend URL Support
 // ===========================
 
 // ── CONFIG ──
+
+const BACKEND_URL = 'https://nargis-restaurant.onrender.com';
+
+// If you're testing locally, use:
+// const BACKEND_URL = '';
+
 const CONFIG = {
   PAYPAL_CLIENT_ID: 'AboL0c2f8qNqGzMFnPGkM7JkiIvJoUiX8r5aUQG9vjuJe3rYc5Jl7lMgZ5Rt',
   TABLE_DEPOSIT_KES: 500,
   CURRENCY: 'KES',
   RESTAURANT_TEL: '+254722793054',
 };
+
+// ── API HELPER ──
+function getApiUrl(endpoint) {
+  if (BACKEND_URL) {
+    return `${BACKEND_URL}${endpoint}`;
+  }
+  return endpoint; // Relative URL for local development
+}
 
 // ── STATE ──
 let cart = JSON.parse(localStorage.getItem('nargis_cart') || '[]');
@@ -39,15 +54,17 @@ function showToast(msg, type = 'info', duration = 3500) {
 // ── DATA LOAD ──
 async function loadData() {
   try {
-    // Try to fetch from API first
     let db;
     try {
-      const res = await fetch('/api/menu');
+      const menuUrl = getApiUrl('/api/menu');
+      console.log('📤 Fetching menu from:', menuUrl);
+      
+      const res = await fetch(menuUrl);
       if (res.ok) {
         const menuData = await res.json();
-        const offersRes = await fetch('/api/offers');
+        const offersRes = await fetch(getApiUrl('/api/offers'));
         const offersData = await offersRes.json();
-        const reviewsRes = await fetch('/api/reviews');
+        const reviewsRes = await fetch(getApiUrl('/api/reviews'));
         const reviewsData = await reviewsRes.json();
         
         db = { menu: menuData, special_offers: offersData, reviews: reviewsData };
@@ -55,7 +72,6 @@ async function loadData() {
         throw new Error('API fetch failed');
       }
     } catch (apiError) {
-      // Fallback to db.json
       console.log('Using fallback data from db.json');
       const res = await fetch('data/db.json');
       db = await res.json();
@@ -196,7 +212,6 @@ function changeQty(id, delta) {
 
 function getCartTotals() {
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  // VAT removed - only show subtotal
   return { subtotal, total: subtotal };
 }
 
@@ -342,7 +357,6 @@ function initReservation() {
       notes: form.querySelector('#res-notes').value || 'None',
     };
     
-    // Validate
     if (!data.name || !data.email || !data.phone || !data.date || !data.time || !data.guests) {
       showToast('Please fill in all required fields', 'error');
       return;
@@ -380,7 +394,6 @@ function openPayment(type) {
   modal.dataset.amount = amount;
   modal.dataset.type = type;
 
-  // Reset method selection
   $$('.pay-method-btn').forEach(b => b.classList.remove('active'));
   $$('.mpesa-form, .paypal-form').forEach(f => f.classList.remove('show'));
 
@@ -403,6 +416,7 @@ function selectPayMethod(method) {
   $(`.${method}-form`)?.classList.add('show');
 }
 
+// ── M-PESA PAYMENT (FIXED) ──
 async function processMpesa() {
   const phone = $('#mpesa-phone')?.value?.trim();
   const amount = parseInt($('#payment-modal')?.dataset.amount || 0);
@@ -420,9 +434,16 @@ async function processMpesa() {
   const orderId = 'NG' + Date.now().toString().slice(-6);
 
   try {
-    const response = await fetch('/api/mpesa/stk-push', {
+    // Use the API helper to get the full URL
+    const url = getApiUrl('/api/mpesa/stk-push');
+    console.log('📤 Sending STK Push to:', url);
+    
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
       body: JSON.stringify({
         phone: phone,
         amount: amount,
@@ -431,14 +452,24 @@ async function processMpesa() {
       })
     });
 
-    const result = await response.json();
+    // Read response as text first for debugging
+    const responseText = await response.text();
+    console.log('📥 Raw response:', responseText);
+    
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('❌ Failed to parse JSON:', e);
+      throw new Error('Server returned invalid response. Please check backend URL.');
+    }
 
     if (result.success) {
       showToast('📱 M-Pesa STK Push sent! Check your phone and enter PIN.', 'info', 8000);
       
       // Poll for payment status
       let attempts = 0;
-      const maxAttempts = 20; // 20 * 3s = 60 seconds max
+      const maxAttempts = 20;
       
       if (paymentPollingInterval) {
         clearInterval(paymentPollingInterval);
@@ -447,8 +478,10 @@ async function processMpesa() {
       paymentPollingInterval = setInterval(async () => {
         attempts++;
         try {
-          const statusRes = await fetch(`/api/mpesa/status/${orderId}`);
-          const statusData = await statusRes.json();
+          const statusUrl = getApiUrl(`/api/mpesa/status/${orderId}`);
+          const statusRes = await fetch(statusUrl);
+          const statusText = await statusRes.text();
+          const statusData = JSON.parse(statusText);
           
           if (statusData.data?.status === 'completed' || statusData.data?.status === 'success') {
             clearInterval(paymentPollingInterval);
@@ -471,7 +504,7 @@ async function processMpesa() {
             btn.disabled = false;
           }
         } catch (e) {
-          // Silent fail, continue polling
+          console.error('Status check error:', e);
           if (attempts >= maxAttempts) {
             clearInterval(paymentPollingInterval);
             paymentPollingInterval = null;
@@ -488,8 +521,8 @@ async function processMpesa() {
     }
 
   } catch (error) {
-    console.error('M-Pesa Error:', error);
-    showToast('Network error. Please check your connection.', 'error');
+    console.error('❌ M-Pesa Error:', error);
+    showToast(`Network error: ${error.message || 'Please check your connection.'}`, 'error');
     btn.textContent = 'Pay with M-Pesa'; 
     btn.disabled = false;
   }
@@ -655,8 +688,7 @@ function initReviewForm() {
     };
     
     try {
-      // Try to save via API
-      const response = await fetch('/api/reviews', {
+      const response = await fetch(getApiUrl('/api/reviews'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(review)
@@ -666,7 +698,6 @@ function initReviewForm() {
       
       showToast('✅ Thank you! Your review has been submitted and is awaiting approval.', 'success', 5000);
     } catch (apiError) {
-      // Fallback to localStorage
       console.log('Using localStorage fallback for review');
       const pending = JSON.parse(localStorage.getItem('nargis_pending_reviews') || '[]');
       pending.push(review);
@@ -701,6 +732,9 @@ function initScrollReveal() {
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('🚀 App starting...');
+  console.log('📡 Backend URL:', BACKEND_URL || '(using relative path)');
+  
   await loadData();
   initNavbar();
   initMenuTabs();
@@ -710,12 +744,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadPayPal();
   initScrollReveal();
 
-  // Payment modal close on background click
   $('#payment-modal')?.addEventListener('click', (e) => {
     if (e.target === $('#payment-modal')) closePaymentModal();
   });
   
-  // Close mobile menu on resize
   window.addEventListener('resize', () => {
     if (window.innerWidth > 900) {
       $('#mobile-menu')?.classList.remove('open');
