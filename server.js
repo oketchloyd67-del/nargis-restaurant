@@ -1,6 +1,6 @@
 // ===========================
 //  NARGIS RESTAURANT – SERVER.JS
-//  Backend for Kora STK Push integration
+//  Complete Backend with Kora STK Push Integration
 // ===========================
 
 require('dotenv').config();
@@ -27,11 +27,12 @@ app.use(express.urlencoded({ extended: true }));
 // ── STATIC FILES ──
 app.use(express.static(__dirname));
 
-// ── KORA CONFIG ──
+// ── KORA CONFIG (CORRECT) ──
 const KORA_API_URL = process.env.KORA_API_URL || 'https://api.korahq.com';
-const KORA_API_KEY = process.env.KORA_API_KEY;
 const KORA_SECRET_KEY = process.env.KORA_SECRET_KEY;
-const KORA_CALLBACK_URL = process.env.KORA_CALLBACK_URL;
+const KORA_PUBLIC_KEY = process.env.KORA_PUBLIC_KEY;
+
+console.log('🔐 KORA Mode:', KORA_SECRET_KEY?.startsWith('sk_test') ? 'Sandbox (Test)' : KORA_SECRET_KEY?.startsWith('sk_live') ? 'Live (Production)' : 'Not Configured');
 
 // ── DB HELPERS ──
 function readDB() {
@@ -46,7 +47,8 @@ function readDB() {
       reviews: [], 
       orders: [], 
       reservations: [], 
-      pending_reviews: [] 
+      pending_reviews: [],
+      pending_transactions: []
     };
   }
 }
@@ -62,83 +64,121 @@ function writeDB(data) {
 }
 
 function generateOrderId() {
-  return 'NG' + Date.now().toString().slice(-6);
+  return 'NG' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 5).toUpperCase();
+}
+
+// ── HELPER: Format Phone Number (CORRECT) ──
+function formatPhoneNumber(phone) {
+  // Remove all spaces, dashes, parentheses, dots
+  let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+  
+  // Remove leading + if present
+  if (cleaned.startsWith('+')) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  // If starts with 0, replace with 254
+  if (cleaned.startsWith('0')) {
+    cleaned = '254' + cleaned.substring(1);
+  }
+  
+  // If already starts with 254, keep as is
+  if (cleaned.startsWith('254')) {
+    return cleaned;
+  }
+  
+  // Default: prepend 254
+  return '254' + cleaned;
 }
 
 // ── HEALTH CHECK ──
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    timestamp: new Date().toISOString(),
+  res.json({
+    status: 'OK',
+    port: PORT,
+    kora: KORA_SECRET_KEY ? '✅ Configured' : '❌ Missing',
     environment: process.env.NODE_ENV || 'development',
-    kora_mode: process.env.KORA_ENV || 'sandbox'
+    timestamp: new Date().toISOString()
   });
 });
 
-// ── KORA STK PUSH ──
+// ════════════════════════════════════════════════
+//  KORA STK PUSH - CORRECT ENDPOINT
+// ════════════════════════════════════════════════
+
 app.post('/api/mpesa/stk-push', async (req, res) => {
   try {
     const { phone, amount, type, orderId } = req.body;
+    console.log('📥 STK Request:', { phone, amount, type, orderId });
 
-    // Validate inputs
+    // ── VALIDATE ──
     if (!phone || !amount) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Phone number and amount are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number and amount are required'
       });
     }
 
-    // Validate Kora credentials
-    if (!KORA_API_KEY || !KORA_SECRET_KEY) {
-      console.error('Missing Kora credentials');
+    if (!KORA_SECRET_KEY) {
+      console.error('❌ KORA_SECRET_KEY not configured');
       return res.status(500).json({
         success: false,
         message: 'Payment configuration error. Please contact support.'
       });
     }
 
-    // Format phone number (remove +254, 0, spaces)
-    let formattedPhone = phone.replace(/\s/g, '');
-    if (formattedPhone.startsWith('+254')) {
-      formattedPhone = formattedPhone.substring(4);
-    } else if (formattedPhone.startsWith('0')) {
-      formattedPhone = formattedPhone.substring(1);
+    if (amount < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount must be greater than 0'
+      });
     }
-    formattedPhone = '254' + formattedPhone;
 
-    // Build STK Push payload
+    // ── FORMAT PHONE ──
+    const formattedPhone = formatPhoneNumber(phone);
+    console.log('📱 Formatted phone:', formattedPhone);
+
+    if (formattedPhone.length !== 12 || !formattedPhone.startsWith('254')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number format. Please use 07XX XXX XXX or +2547XX XXX XXX'
+      });
+    }
+
+    // ── GENERATE REFERENCE ──
     const reference = orderId || generateOrderId();
+    console.log('📋 Reference:', reference);
+
+    // ── KORA STK PUSH PAYLOAD (CORRECT) ──
     const payload = {
       phone_number: formattedPhone,
       amount: Math.round(amount),
-      callback_url: KORA_CALLBACK_URL || 'https://your-domain.com/api/mpesa/callback',
       reference: reference,
-      description: `Nargis Restaurant - ${type || 'Order Payment'} #${reference}`,
-      business_shortcode: process.env.KORA_BUSINESS_SHORTCODE || '123456',
-      passkey: process.env.KORA_PASSKEY || 'your_passkey'
+      description: `Nargis Restaurant - ${type || 'Order'} #${reference}`,
+      // callback_url is set in Kora Dashboard, not here
     };
 
-    console.log('📤 Sending STK Push:', { 
-      phone: formattedPhone, 
-      amount: amount, 
-      reference: reference 
+    console.log('📤 Sending to Kora:', { 
+      url: `${KORA_API_URL}/v1/payments/mpesa/stk-push`,
+      payload 
     });
 
-    // Make request to Kora API
+    // ── SEND TO KORA (CORRECT ENDPOINT) ──
     const response = await axios.post(
-      `${KORA_API_URL}/api/v1/mpesa/stk-push`,
+      `${KORA_API_URL}/v1/payments/mpesa/stk-push`,
       payload,
       {
         headers: {
-          'Authorization': `Bearer ${KORA_API_KEY}`,
-          'Content-Type': 'application/json',
-          'x-secret-key': KORA_SECRET_KEY
+          'Authorization': `Bearer ${KORA_SECRET_KEY}`,
+          'Content-Type': 'application/json'
         },
         timeout: 30000
       }
     );
 
-    // Save pending transaction to DB
+    console.log('✅ Kora Response:', response.data);
+
+    // ── SAVE PENDING TRANSACTION ──
     const db = readDB();
     const pendingTransaction = {
       id: reference,
@@ -156,7 +196,7 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
     db.pending_transactions.push(pendingTransaction);
     writeDB(db);
 
-    console.log('✅ STK Push sent successfully:', reference);
+    // ── RESPONSE ──
     res.json({
       success: true,
       data: response.data,
@@ -166,23 +206,34 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
 
   } catch (error) {
     console.error('❌ Kora STK Push Error:', error.response?.data || error.message);
+    
+    // Better error handling
+    const errorMessage = error.response?.data?.message || 
+                        error.response?.data?.error || 
+                        error.response?.data?.errors?.join(', ') ||
+                        error.message || 
+                        'Payment initiation failed';
+
     res.status(500).json({
       success: false,
-      message: error.response?.data?.message || 'Payment initiation failed. Please try again.',
+      message: errorMessage,
       error: error.response?.data || error.message
     });
   }
 });
 
-// ── KORA CALLBACK WEBHOOK ──
+// ════════════════════════════════════════════════
+//  KORA CALLBACK WEBHOOK - CORRECT
+// ════════════════════════════════════════════════
+
 app.post('/api/mpesa/callback', async (req, res) => {
   try {
     const callbackData = req.body;
-    console.log('📥 M-Pesa Callback Received:', JSON.stringify(callbackData, null, 2));
+    console.log('📥 Kora Callback Received:', JSON.stringify(callbackData, null, 2));
 
-    const { reference, status, amount, phone_number, transaction_id, mpesa_receipt } = callbackData;
+    const { reference, status, amount, transaction_id, mpesa_receipt } = callbackData;
 
-    // Update pending transaction
+    // ── UPDATE PENDING TRANSACTION ──
     const db = readDB();
     if (db.pending_transactions) {
       const txIndex = db.pending_transactions.findIndex(t => t.id === reference);
@@ -191,13 +242,15 @@ app.post('/api/mpesa/callback', async (req, res) => {
         db.pending_transactions[txIndex].transaction_id = transaction_id || mpesa_receipt;
         db.pending_transactions[txIndex].completed_at = new Date().toISOString();
         writeDB(db);
+        console.log(`✅ Pending transaction ${reference} updated to: ${status}`);
       }
     }
 
+    // ── UPDATE ORDER OR RESERVATION ──
     if (status === 'completed' || status === 'success') {
-      console.log(`✅ Payment successful for order ${reference}`);
+      console.log(`✅ Payment successful for ${reference}`);
       
-      // Update order status in db.json
+      // Check orders
       const orderIndex = db.orders.findIndex(o => o.id === reference);
       if (orderIndex !== -1) {
         db.orders[orderIndex].status = 'paid';
@@ -207,7 +260,7 @@ app.post('/api/mpesa/callback', async (req, res) => {
         console.log(`✅ Order ${reference} marked as paid`);
       }
       
-      // Also check reservations
+      // Check reservations
       const resIndex = db.reservations.findIndex(r => r.id === reference);
       if (resIndex !== -1) {
         db.reservations[resIndex].status = 'confirmed';
@@ -219,7 +272,7 @@ app.post('/api/mpesa/callback', async (req, res) => {
       
       res.json({ success: true, message: 'Payment processed successfully' });
     } else {
-      console.log(`❌ Payment failed for order ${reference}: ${status}`);
+      console.log(`❌ Payment failed for ${reference}: ${status}`);
       res.json({ success: false, message: 'Payment failed' });
     }
 
@@ -229,12 +282,16 @@ app.post('/api/mpesa/callback', async (req, res) => {
   }
 });
 
-// ── CHECK PAYMENT STATUS ──
+// ════════════════════════════════════════════════
+//  CHECK PAYMENT STATUS - CORRECT
+// ════════════════════════════════════════════════
+
 app.get('/api/mpesa/status/:reference', async (req, res) => {
   try {
     const { reference } = req.params;
-    
-    // Check local DB first
+    console.log('📊 Checking status for:', reference);
+
+    // ── CHECK LOCAL DB FIRST ──
     const db = readDB();
     
     // Check pending transactions
@@ -281,15 +338,15 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
       });
     }
 
-    // If not found locally, check Kora
-    if (KORA_API_KEY && KORA_SECRET_KEY) {
+    // ── CHECK KORA API (CORRECT ENDPOINT) ──
+    if (KORA_SECRET_KEY) {
       try {
         const response = await axios.get(
-          `${KORA_API_URL}/api/v1/mpesa/status/${reference}`,
+          `${KORA_API_URL}/v1/payments/mpesa/status/${reference}`,
           {
             headers: {
-              'Authorization': `Bearer ${KORA_API_KEY}`,
-              'x-secret-key': KORA_SECRET_KEY
+              'Authorization': `Bearer ${KORA_SECRET_KEY}`,
+              'Content-Type': 'application/json'
             },
             timeout: 10000
           }
@@ -304,7 +361,7 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
       }
     }
 
-    // Default response
+    // ── DEFAULT RESPONSE ──
     res.json({
       success: true,
       data: { 
@@ -315,7 +372,7 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Status check error:', error);
+    console.error('❌ Status check error:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch payment status'
@@ -323,7 +380,10 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
   }
 });
 
-// ── ORDERS API ──
+// ════════════════════════════════════════════════
+//  ORDERS API
+// ════════════════════════════════════════════════
+
 app.get('/api/orders', (req, res) => {
   try {
     const db = readDB();
@@ -341,6 +401,7 @@ app.post('/api/orders', (req, res) => {
       ...req.body,
       created_at: new Date().toISOString()
     };
+    if (!db.orders) db.orders = [];
     db.orders.push(newOrder);
     writeDB(db);
     res.json({ success: true, order: newOrder });
@@ -378,7 +439,10 @@ app.delete('/api/orders/:id', (req, res) => {
   }
 });
 
-// ── RESERVATIONS API ──
+// ════════════════════════════════════════════════
+//  RESERVATIONS API
+// ════════════════════════════════════════════════
+
 app.get('/api/reservations', (req, res) => {
   try {
     const db = readDB();
@@ -396,6 +460,7 @@ app.post('/api/reservations', (req, res) => {
       ...req.body,
       created_at: new Date().toISOString()
     };
+    if (!db.reservations) db.reservations = [];
     db.reservations.push(newReservation);
     writeDB(db);
     res.json({ success: true, reservation: newReservation });
@@ -433,7 +498,10 @@ app.delete('/api/reservations/:id', (req, res) => {
   }
 });
 
-// ── REVIEWS API ──
+// ════════════════════════════════════════════════
+//  REVIEWS API
+// ════════════════════════════════════════════════
+
 app.get('/api/reviews', (req, res) => {
   try {
     const db = readDB();
@@ -452,7 +520,7 @@ app.post('/api/reviews', (req, res) => {
       approved: false,
       created_at: new Date().toISOString()
     };
-    db.pending_reviews = db.pending_reviews || [];
+    if (!db.pending_reviews) db.pending_reviews = [];
     db.pending_reviews.push(newReview);
     writeDB(db);
     res.json({ success: true, review: newReview });
@@ -484,7 +552,7 @@ app.put('/api/reviews/:id/approve', (req, res) => {
     review.approved = true;
     review.approved_at = new Date().toISOString();
     
-    db.reviews = db.reviews || [];
+    if (!db.reviews) db.reviews = [];
     db.reviews.push(review);
     db.pending_reviews.splice(pendingIndex, 1);
     writeDB(db);
@@ -508,7 +576,10 @@ app.delete('/api/reviews/:id/reject', (req, res) => {
   }
 });
 
-// ── MENU API ──
+// ════════════════════════════════════════════════
+//  MENU API
+// ════════════════════════════════════════════════
+
 app.get('/api/menu', (req, res) => {
   try {
     const db = readDB();
@@ -518,6 +589,55 @@ app.get('/api/menu', (req, res) => {
     res.status(500).json({ success: false, message: 'Failed to fetch menu' });
   }
 });
+
+app.post('/api/menu', (req, res) => {
+  try {
+    const db = readDB();
+    const newItem = {
+      ...req.body,
+      created_at: new Date().toISOString()
+    };
+    if (!db.menu) db.menu = [];
+    db.menu.push(newItem);
+    writeDB(db);
+    res.json({ success: true, item: newItem });
+  } catch (error) {
+    console.error('Error saving menu item:', error);
+    res.status(500).json({ success: false, message: 'Failed to save menu item' });
+  }
+});
+
+app.put('/api/menu/:id', (req, res) => {
+  try {
+    const db = readDB();
+    const index = db.menu.findIndex(item => item.id === parseInt(req.params.id));
+    if (index === -1) {
+      return res.status(404).json({ success: false, message: 'Item not found' });
+    }
+    db.menu[index] = { ...db.menu[index], ...req.body };
+    writeDB(db);
+    res.json({ success: true, item: db.menu[index] });
+  } catch (error) {
+    console.error('Error updating menu item:', error);
+    res.status(500).json({ success: false, message: 'Failed to update menu item' });
+  }
+});
+
+app.delete('/api/menu/:id', (req, res) => {
+  try {
+    const db = readDB();
+    db.menu = db.menu.filter(item => item.id !== parseInt(req.params.id));
+    writeDB(db);
+    res.json({ success: true, message: 'Menu item deleted' });
+  } catch (error) {
+    console.error('Error deleting menu item:', error);
+    res.status(500).json({ success: false, message: 'Failed to delete menu item' });
+  }
+});
+
+// ════════════════════════════════════════════════
+//  OFFERS API
+// ════════════════════════════════════════════════
 
 app.get('/api/offers', (req, res) => {
   try {
@@ -529,7 +649,10 @@ app.get('/api/offers', (req, res) => {
   }
 });
 
-// ── STATS API ──
+// ════════════════════════════════════════════════
+//  STATS API
+// ════════════════════════════════════════════════
+
 app.get('/api/stats', (req, res) => {
   try {
     const db = readDB();
@@ -560,7 +683,10 @@ app.get('/api/stats', (req, res) => {
   }
 });
 
-// ── ERROR HANDLING ──
+// ════════════════════════════════════════════════
+//  ERROR HANDLING
+// ════════════════════════════════════════════════
+
 app.use((err, req, res, next) => {
   console.error('Server Error:', err);
   res.status(500).json({
@@ -579,14 +705,18 @@ app.use((req, res) => {
   });
 });
 
-// ── START SERVER ──
+// ════════════════════════════════════════════════
+//  START SERVER
+// ════════════════════════════════════════════════
+
 app.listen(PORT, () => {
   console.log('🔥 ========================================');
   console.log(`🔥 Nargis Restaurant Server Running`);
   console.log('🔥 ========================================');
   console.log(`📡 Port: ${PORT}`);
   console.log(`📡 API Base: http://localhost:${PORT}/api`);
-  console.log(`🔐 Kora Mode: ${process.env.KORA_ENV || 'sandbox'}`);
+  console.log(`🔐 KORA: ${KORA_SECRET_KEY ? '✅ Configured' : '❌ Missing'}`);
+  console.log(`🔐 KORA Mode: ${KORA_SECRET_KEY?.startsWith('sk_test') ? 'Sandbox' : KORA_SECRET_KEY?.startsWith('sk_live') ? 'Live' : 'Unknown'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📁 DB Path: ${DB_PATH}`);
   console.log('🔥 ========================================');
