@@ -75,6 +75,7 @@ button { cursor: pointer; border: none; font-family: inherit; }
 .sidebar-brand {
   padding: 28px 24px;
   border-bottom: 1px solid rgba(255,255,255,.08);
+  position: relative;
 }
 .sidebar-brand h2 { font-size: 1.3rem; color: #FFFFFF; font-weight: 900; }
 .sidebar-brand h2 span { color: #E8862A; }
@@ -253,14 +254,6 @@ tr:hover td { background: #FDF9F5; }
 .admin-toast.show { transform: translateY(0); opacity: 1; }
 .admin-toast.success { border-left: 4px solid var(--green); }
 .admin-toast.error   { border-left: 4px solid var(--red); }
-
-/* ── RESPONSIVE ── */
-@media (max-width: 1024px) { .stats-grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 768px) {
-  .admin-sidebar { display: none; }
-  .stats-grid { grid-template-columns: 1fr; }
-  .admin-content { padding: 16px; }
-}
 
 /* ── MOBILE SIDEBAR TOGGLE ── */
 .mobile-sidebar-toggle {

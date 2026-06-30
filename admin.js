@@ -365,7 +365,6 @@ async function loadMenuManager() {
   if (!tbody) return;
   
   try {
-    // Try to fetch from API first
     let menuItems = [];
     try {
       const response = await fetch('/api/menu');
@@ -375,17 +374,14 @@ async function loadMenuManager() {
         throw new Error('API fetch failed');
       }
     } catch (apiError) {
-      // Fallback to db.json
       console.log('Using fallback menu data');
       const res = await fetch('data/db.json');
       const db = await res.json();
       menuItems = db.menu || [];
     }
     
-    // Also check localStorage for any added items
     const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
     
-    // Merge and deduplicate by ID (local items override)
     const allItems = [...menuItems];
     localMenu.forEach(localItem => {
       const existingIndex = allItems.findIndex(item => item.id === localItem.id);
@@ -440,16 +436,11 @@ function openAddMenuItem() {
   document.getElementById('menu-modal').classList.add('open');
 }
 
-function openEditMenuItem(id) {
-  editMenuItem(id);
-}
-
 function editMenuItem(id) {
   isEditingMenuItem = true;
   document.getElementById('menu-modal-title').textContent = '✏️ Edit Menu Item';
   document.getElementById('menu-submit-btn').textContent = '💾 Update Item';
   
-  // Get the item data
   loadMenuItemData(id).then(item => {
     if (!item) {
       showAdminToast('Item not found', 'error');
@@ -473,7 +464,6 @@ function editMenuItem(id) {
 
 async function loadMenuItemData(id) {
   try {
-    // Try API first
     const response = await fetch('/api/menu');
     if (response.ok) {
       const items = await response.json();
@@ -484,12 +474,10 @@ async function loadMenuItemData(id) {
     console.log('API fetch failed, checking local');
   }
   
-  // Check localStorage
   const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
   const localItem = localMenu.find(i => i.id === id);
   if (localItem) return localItem;
   
-  // Fallback to db.json
   try {
     const res = await fetch('data/db.json');
     const db = await res.json();
@@ -514,7 +502,6 @@ async function saveMenuItem(e) {
   const popular = document.getElementById('menu-popular').checked;
   const vegetarian = document.getElementById('menu-vegetarian').checked;
   
-  // Validate
   if (!name || !price || !description) {
     showAdminToast('Please fill in all required fields', 'error');
     return;
@@ -540,10 +527,8 @@ async function saveMenuItem(e) {
   
   try {
     if (editId) {
-      // Update existing item
       itemData.id = parseInt(editId);
       
-      // Try API update
       try {
         const response = await fetch(`/api/menu/${editId}`, {
           method: 'PUT',
@@ -555,7 +540,6 @@ async function saveMenuItem(e) {
           showAdminToast(`✅ "${name}" updated successfully!`, 'success');
           closeMenuModal();
           loadMenuManager();
-          // Also update the frontend menu data
           updateFrontendMenu(itemData);
           return;
         }
@@ -563,7 +547,6 @@ async function saveMenuItem(e) {
         console.log('API update failed, using fallback');
       }
       
-      // Fallback: update in localStorage
       let localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
       const index = localMenu.findIndex(item => item.id === parseInt(editId));
       if (index !== -1) {
@@ -573,7 +556,6 @@ async function saveMenuItem(e) {
       }
       localStorage.setItem('nargis_menu', JSON.stringify(localMenu));
       
-      // Also try to update db.json via fetch
       updateDbJson(itemData);
       
       showAdminToast(`✅ "${name}" updated successfully (local)`, 'success');
@@ -582,8 +564,6 @@ async function saveMenuItem(e) {
       updateFrontendMenu(itemData);
       
     } else {
-      // Add new item
-      // Get current max ID
       let maxId = 0;
       try {
         const response = await fetch('/api/menu');
@@ -595,7 +575,6 @@ async function saveMenuItem(e) {
         console.log('API fetch failed for ID generation');
       }
       
-      // Check localStorage as well
       const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
       const localMaxId = localMenu.reduce((max, item) => Math.max(max, item.id || 0), 0);
       maxId = Math.max(maxId, localMaxId);
@@ -603,7 +582,6 @@ async function saveMenuItem(e) {
       const newId = maxId + 1;
       itemData.id = newId;
       
-      // Try API save
       try {
         const response = await fetch('/api/menu', {
           method: 'POST',
@@ -622,11 +600,9 @@ async function saveMenuItem(e) {
         console.log('API save failed, using fallback');
       }
       
-      // Fallback: save to localStorage
       localMenu.push(itemData);
       localStorage.setItem('nargis_menu', JSON.stringify(localMenu));
       
-      // Also try to update db.json
       updateDbJson(itemData);
       
       showAdminToast(`✅ "${name}" added to menu (local)`, 'success');
@@ -641,14 +617,11 @@ async function saveMenuItem(e) {
   }
 }
 
-// ── UPDATE DB.JSON ──
 async function updateDbJson(itemData) {
   try {
-    // Read current db.json
     const response = await fetch('data/db.json');
     const db = await response.json();
     
-    // Update menu
     const existingIndex = db.menu.findIndex(item => item.id === itemData.id);
     if (existingIndex !== -1) {
       db.menu[existingIndex] = itemData;
@@ -656,10 +629,8 @@ async function updateDbJson(itemData) {
       db.menu.push(itemData);
     }
     
-    // Write back (this would need a server endpoint, but we'll use localStorage as fallback)
     localStorage.setItem('nargis_menu_backup', JSON.stringify(db.menu));
     
-    // Also send to server via PUT if available
     try {
       await fetch('/api/menu/sync', {
         method: 'POST',
@@ -675,11 +646,8 @@ async function updateDbJson(itemData) {
   }
 }
 
-// ── UPDATE FRONTEND MENU ──
 function updateFrontendMenu(itemData) {
-  // This ensures the main website sees the updated menu
   try {
-    // Store in a global variable for the frontend
     if (window.menuData) {
       const existingIndex = window.menuData.findIndex(item => item.id === itemData.id);
       if (existingIndex !== -1) {
@@ -687,7 +655,6 @@ function updateFrontendMenu(itemData) {
       } else {
         window.menuData.push(itemData);
       }
-      // Re-render menu if on main page
       if (typeof renderMenu === 'function') {
         renderMenu();
       }
@@ -701,7 +668,6 @@ function updateFrontendMenu(itemData) {
 async function deleteMenuItem(id) {
   if (!confirm('Are you sure you want to delete this menu item? This action cannot be undone.')) return;
   
-  // Get item name for toast message
   let itemName = 'Item';
   try {
     const items = await loadAllMenuItems();
@@ -710,7 +676,6 @@ async function deleteMenuItem(id) {
   } catch (e) {}
   
   try {
-    // Try API delete
     try {
       const response = await fetch(`/api/menu/${id}`, {
         method: 'DELETE'
@@ -726,12 +691,10 @@ async function deleteMenuItem(id) {
       console.log('API delete failed, using fallback');
     }
     
-    // Fallback: remove from localStorage
     let localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
     localMenu = localMenu.filter(item => item.id !== id);
     localStorage.setItem('nargis_menu', JSON.stringify(localMenu));
     
-    // Also try to remove from db.json
     try {
       const response = await fetch('data/db.json');
       const db = await response.json();
@@ -751,7 +714,6 @@ async function deleteMenuItem(id) {
   }
 }
 
-// ── REMOVE FROM FRONTEND MENU ──
 function removeFromFrontendMenu(id) {
   try {
     if (window.menuData) {
@@ -765,7 +727,6 @@ function removeFromFrontendMenu(id) {
   }
 }
 
-// ── LOAD ALL MENU ITEMS ──
 async function loadAllMenuItems() {
   let allItems = [];
   
@@ -778,10 +739,8 @@ async function loadAllMenuItems() {
     console.log('API fetch failed');
   }
   
-  // Check localStorage
   const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
   
-  // Merge and deduplicate
   const merged = [...allItems];
   localMenu.forEach(localItem => {
     const existingIndex = merged.findIndex(item => item.id === localItem.id);
@@ -792,7 +751,6 @@ async function loadAllMenuItems() {
     }
   });
   
-  // Also check db.json
   try {
     const res = await fetch('data/db.json');
     const db = await res.json();
@@ -807,13 +765,11 @@ async function loadAllMenuItems() {
   return merged;
 }
 
-// ── REFRESH MENU ──
 function refreshMenu() {
   showAdminToast('🔄 Refreshing menu...', 'info');
   loadMenuManager();
 }
 
-// ── CLOSE MENU MODAL ──
 function closeMenuModal() {
   document.getElementById('menu-modal').classList.remove('open');
 }
@@ -855,9 +811,62 @@ function exportCSV(type) {
   showAdminToast(`${type} exported! ✅`, 'success');
 }
 
+// ── MOBILE SIDEBAR TOGGLE ──
+function initMobileSidebar() {
+  const toggleBtn = document.getElementById('mobile-sidebar-toggle');
+  const sidebar = document.getElementById('admin-sidebar');
+  const closeBtn = document.getElementById('sidebar-close');
+  const overlay = document.getElementById('sidebar-overlay');
+
+  function openSidebar() {
+    sidebar.classList.add('open');
+    toggleBtn.classList.add('active');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeSidebar() {
+    sidebar.classList.remove('open');
+    toggleBtn.classList.remove('active');
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      if (sidebar.classList.contains('open')) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', closeSidebar);
+  }
+
+  if (overlay) {
+    overlay.addEventListener('click', closeSidebar);
+  }
+
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      if (window.innerWidth <= 768) {
+        closeSidebar();
+      }
+    });
+  });
+
+  window.addEventListener('resize', () => {
+    if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
+      closeSidebar();
+    }
+  });
+}
+
 // ── CATEGORY CHANGE HANDLER ──
 document.addEventListener('DOMContentLoaded', function() {
-  // Category change handler for new category
   const categorySelect = document.getElementById('menu-category');
   if (categorySelect) {
     categorySelect.addEventListener('change', function() {
@@ -874,7 +883,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
   
-  // Modal close on background click
   document.getElementById('menu-modal')?.addEventListener('click', (e) => {
     if (e.target === document.getElementById('menu-modal')) closeMenuModal();
   });
@@ -894,4 +902,6 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault(); 
     login();
   });
+  
+  initMobileSidebar();
 });
