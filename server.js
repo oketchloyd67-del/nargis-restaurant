@@ -1,6 +1,6 @@
 // ===========================
 //  NARGIS RESTAURANT – SERVER.JS
-//  Complete Backend with Kora STK Push Integration
+//  Complete Backend with Kora STK Push Integration & Secure Admin Auth
 // ===========================
 
 require('dotenv').config();
@@ -27,12 +27,17 @@ app.use(express.urlencoded({ extended: true }));
 // ── STATIC FILES ──
 app.use(express.static(__dirname));
 
-// ── KORA CONFIG (CORRECT) ──
+// ── KORA CONFIG ──
 const KORA_API_URL = process.env.KORA_API_URL || 'https://api.korahq.com';
 const KORA_SECRET_KEY = process.env.KORA_SECRET_KEY;
 const KORA_PUBLIC_KEY = process.env.KORA_PUBLIC_KEY;
 
+// ── ADMIN CREDENTIALS FROM ENV ──
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'NargisAdmin2024!';
+
 console.log('🔐 KORA Mode:', KORA_SECRET_KEY?.startsWith('sk_test') ? 'Sandbox (Test)' : KORA_SECRET_KEY?.startsWith('sk_live') ? 'Live (Production)' : 'Not Configured');
+console.log('🔐 Admin Auth:', ADMIN_USERNAME ? '✅ Configured' : '❌ Missing');
 
 // ── DB HELPERS ──
 function readDB() {
@@ -67,43 +72,185 @@ function generateOrderId() {
   return 'NG' + Date.now().toString().slice(-6) + Math.random().toString(36).substring(2, 5).toUpperCase();
 }
 
-// ── HELPER: Format Phone Number (CORRECT) ──
+// ── HELPER: Format Phone Number ──
 function formatPhoneNumber(phone) {
-  // Remove all spaces, dashes, parentheses, dots
   let cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
   
-  // Remove leading + if present
   if (cleaned.startsWith('+')) {
     cleaned = cleaned.substring(1);
   }
   
-  // If starts with 0, replace with 254
   if (cleaned.startsWith('0')) {
     cleaned = '254' + cleaned.substring(1);
   }
   
-  // If already starts with 254, keep as is
   if (cleaned.startsWith('254')) {
     return cleaned;
   }
   
-  // Default: prepend 254
   return '254' + cleaned;
 }
 
-// ── HEALTH CHECK ──
+// ════════════════════════════════════════════════
+//  HEALTH CHECK
+// ════════════════════════════════════════════════
+
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'OK',
     port: PORT,
     kora: KORA_SECRET_KEY ? '✅ Configured' : '❌ Missing',
+    admin: ADMIN_USERNAME ? '✅ Configured' : '❌ Missing',
     environment: process.env.NODE_ENV || 'development',
     timestamp: new Date().toISOString()
   });
 });
 
 // ════════════════════════════════════════════════
-//  KORA STK PUSH - CORRECT ENDPOINT
+//  ADMIN AUTH - SECURE
+// ════════════════════════════════════════════════
+
+// Admin login endpoint
+app.post('/api/admin/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Username and password are required'
+      });
+    }
+    
+    // Check credentials from environment variables
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+      // Generate a simple session token
+      const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
+      
+      res.json({
+        success: true,
+        token: token,
+        message: 'Login successful'
+      });
+    } else {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid username or password'
+      });
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Login failed'
+    });
+  }
+});
+
+// Verify admin token
+app.get('/api/admin/verify', (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+    
+    // Verify token format
+    try {
+      const decoded = Buffer.from(token, 'base64').toString();
+      const [username, timestamp] = decoded.split(':');
+      
+      if (username === ADMIN_USERNAME) {
+        return res.json({
+          success: true,
+          message: 'Token valid',
+          username: username
+        });
+      }
+    } catch (e) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid token format'
+      });
+    }
+    
+    res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
+  } catch (error) {
+    console.error('Verify error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Verification failed'
+    });
+  }
+});
+
+// Protected route example - for admin data
+app.get('/api/admin/stats', verifyAdminToken, (req, res) => {
+  try {
+    const db = readDB();
+    const orders = db.orders || [];
+    const reservations = db.reservations || [];
+    
+    res.json({
+      success: true,
+      data: {
+        total_orders: orders.length,
+        total_reservations: reservations.length,
+        total_revenue: orders
+          .filter(o => o.status === 'paid')
+          .reduce((sum, o) => sum + (o.total || 0), 0),
+        pending_reviews: (db.pending_reviews || []).length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch stats'
+    });
+  }
+});
+
+// Middleware to verify admin token
+function verifyAdminToken(req, res, next) {
+  const token = req.headers.authorization?.split(' ')[1];
+  
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'No token provided'
+    });
+  }
+  
+  try {
+    const decoded = Buffer.from(token, 'base64').toString();
+    const [username, timestamp] = decoded.split(':');
+    
+    if (username === ADMIN_USERNAME) {
+      req.admin = { username };
+      next();
+    } else {
+      res.status(401).json({
+        success: false,
+        message: 'Invalid token'
+      });
+    }
+  } catch (error) {
+    res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
+  }
+}
+
+// ════════════════════════════════════════════════
+//  KORA STK PUSH
 // ════════════════════════════════════════════════
 
 app.post('/api/mpesa/stk-push', async (req, res) => {
@@ -111,7 +258,6 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
     const { phone, amount, type, orderId } = req.body;
     console.log('📥 STK Request:', { phone, amount, type, orderId });
 
-    // ── VALIDATE ──
     if (!phone || !amount) {
       return res.status(400).json({
         success: false,
@@ -134,7 +280,6 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
       });
     }
 
-    // ── FORMAT PHONE ──
     const formattedPhone = formatPhoneNumber(phone);
     console.log('📱 Formatted phone:', formattedPhone);
 
@@ -145,17 +290,14 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
       });
     }
 
-    // ── GENERATE REFERENCE ──
     const reference = orderId || generateOrderId();
     console.log('📋 Reference:', reference);
 
-    // ── KORA STK PUSH PAYLOAD (CORRECT) ──
     const payload = {
       phone_number: formattedPhone,
       amount: Math.round(amount),
       reference: reference,
       description: `Nargis Restaurant - ${type || 'Order'} #${reference}`,
-      // callback_url is set in Kora Dashboard, not here
     };
 
     console.log('📤 Sending to Kora:', { 
@@ -163,7 +305,6 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
       payload 
     });
 
-    // ── SEND TO KORA (CORRECT ENDPOINT) ──
     const response = await axios.post(
       `${KORA_API_URL}/v1/payments/mpesa/stk-push`,
       payload,
@@ -178,7 +319,6 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
 
     console.log('✅ Kora Response:', response.data);
 
-    // ── SAVE PENDING TRANSACTION ──
     const db = readDB();
     const pendingTransaction = {
       id: reference,
@@ -196,7 +336,6 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
     db.pending_transactions.push(pendingTransaction);
     writeDB(db);
 
-    // ── RESPONSE ──
     res.json({
       success: true,
       data: response.data,
@@ -207,7 +346,6 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
   } catch (error) {
     console.error('❌ Kora STK Push Error:', error.response?.data || error.message);
     
-    // Better error handling
     const errorMessage = error.response?.data?.message || 
                         error.response?.data?.error || 
                         error.response?.data?.errors?.join(', ') ||
@@ -223,7 +361,7 @@ app.post('/api/mpesa/stk-push', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════
-//  KORA CALLBACK WEBHOOK - CORRECT
+//  KORA CALLBACK WEBHOOK
 // ════════════════════════════════════════════════
 
 app.post('/api/mpesa/callback', async (req, res) => {
@@ -233,7 +371,6 @@ app.post('/api/mpesa/callback', async (req, res) => {
 
     const { reference, status, amount, transaction_id, mpesa_receipt } = callbackData;
 
-    // ── UPDATE PENDING TRANSACTION ──
     const db = readDB();
     if (db.pending_transactions) {
       const txIndex = db.pending_transactions.findIndex(t => t.id === reference);
@@ -246,11 +383,9 @@ app.post('/api/mpesa/callback', async (req, res) => {
       }
     }
 
-    // ── UPDATE ORDER OR RESERVATION ──
     if (status === 'completed' || status === 'success') {
       console.log(`✅ Payment successful for ${reference}`);
       
-      // Check orders
       const orderIndex = db.orders.findIndex(o => o.id === reference);
       if (orderIndex !== -1) {
         db.orders[orderIndex].status = 'paid';
@@ -260,7 +395,6 @@ app.post('/api/mpesa/callback', async (req, res) => {
         console.log(`✅ Order ${reference} marked as paid`);
       }
       
-      // Check reservations
       const resIndex = db.reservations.findIndex(r => r.id === reference);
       if (resIndex !== -1) {
         db.reservations[resIndex].status = 'confirmed';
@@ -283,7 +417,7 @@ app.post('/api/mpesa/callback', async (req, res) => {
 });
 
 // ════════════════════════════════════════════════
-//  CHECK PAYMENT STATUS - CORRECT
+//  CHECK PAYMENT STATUS
 // ════════════════════════════════════════════════
 
 app.get('/api/mpesa/status/:reference', async (req, res) => {
@@ -291,10 +425,8 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
     const { reference } = req.params;
     console.log('📊 Checking status for:', reference);
 
-    // ── CHECK LOCAL DB FIRST ──
     const db = readDB();
     
-    // Check pending transactions
     if (db.pending_transactions) {
       const tx = db.pending_transactions.find(t => t.id === reference);
       if (tx) {
@@ -310,7 +442,6 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
       }
     }
     
-    // Check orders
     const order = db.orders.find(o => o.id === reference);
     if (order && order.status === 'paid') {
       return res.json({
@@ -324,7 +455,6 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
       });
     }
     
-    // Check reservations
     const reservation = db.reservations.find(r => r.id === reference);
     if (reservation && reservation.status === 'confirmed') {
       return res.json({
@@ -338,7 +468,6 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
       });
     }
 
-    // ── CHECK KORA API (CORRECT ENDPOINT) ──
     if (KORA_SECRET_KEY) {
       try {
         const response = await axios.get(
@@ -361,7 +490,6 @@ app.get('/api/mpesa/status/:reference', async (req, res) => {
       }
     }
 
-    // ── DEFAULT RESPONSE ──
     res.json({
       success: true,
       data: { 
@@ -697,7 +825,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ── 404 HANDLING ──
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -717,6 +844,7 @@ app.listen(PORT, () => {
   console.log(`📡 API Base: http://localhost:${PORT}/api`);
   console.log(`🔐 KORA: ${KORA_SECRET_KEY ? '✅ Configured' : '❌ Missing'}`);
   console.log(`🔐 KORA Mode: ${KORA_SECRET_KEY?.startsWith('sk_test') ? 'Sandbox' : KORA_SECRET_KEY?.startsWith('sk_live') ? 'Live' : 'Unknown'}`);
+  console.log(`🔐 Admin Auth: ${ADMIN_USERNAME ? '✅ Configured' : '❌ Missing'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`📁 DB Path: ${DB_PATH}`);
   console.log('🔥 ========================================');

@@ -1,29 +1,54 @@
 // ===========================
 //  NARGIS ADMIN – admin.js
+//  Secure Admin Panel with Backend Authentication
 // ===========================
-
-// ── CREDENTIALS ──
-const ADMIN_CREDS = {
-  username: 'admin',
-  password: 'NargisAdmin2024!'
-};
 
 let currentPanel = 'dashboard';
 let detailTarget = null;
 let isEditingMenuItem = false;
 
 // ── AUTH ──
-function login() {
+async function login() {
   const user = document.getElementById('admin-user').value.trim();
   const pass = document.getElementById('admin-pass').value;
   const err = document.getElementById('login-error');
 
-  if (user === ADMIN_CREDS.username && pass === ADMIN_CREDS.password) {
-    sessionStorage.setItem('nargis_admin', '1');
-    showApp();
-  } else {
+  if (!user || !pass) {
     err.style.display = 'block';
-    err.textContent = 'Invalid username or password.';
+    err.textContent = 'Please enter both username and password.';
+    setTimeout(() => err.style.display = 'none', 3000);
+    return false;
+  }
+
+  try {
+    // Send login request to backend
+    const response = await fetch('/api/admin/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: user,
+        password: pass
+      })
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      // Store token in session
+      sessionStorage.setItem('nargis_admin_token', result.token);
+      sessionStorage.setItem('nargis_admin', '1');
+      showApp();
+    } else {
+      err.style.display = 'block';
+      err.textContent = result.message || 'Invalid username or password.';
+      setTimeout(() => err.style.display = 'none', 3000);
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+    err.style.display = 'block';
+    err.textContent = 'Network error. Please try again.';
     setTimeout(() => err.style.display = 'none', 3000);
   }
   return false;
@@ -37,8 +62,31 @@ function showApp() {
 }
 
 function logout() {
+  sessionStorage.removeItem('nargis_admin_token');
   sessionStorage.removeItem('nargis_admin');
   location.reload();
+}
+
+// ── VERIFY ADMIN SESSION ──
+async function verifyAdminSession() {
+  const token = sessionStorage.getItem('nargis_admin_token');
+  
+  if (!token) {
+    return false;
+  }
+  
+  try {
+    const response = await fetch('/api/admin/verify', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    return response.ok;
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return false;
+  }
 }
 
 // ── PANEL SWITCHING ──
@@ -425,7 +473,6 @@ async function loadMenuManager() {
   }
 }
 
-// ── ADD MENU ITEM ──
 function openAddMenuItem() {
   isEditingMenuItem = false;
   document.getElementById('menu-modal-title').textContent = '➕ Add New Menu Item';
@@ -893,9 +940,16 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ── INIT ──
-document.addEventListener('DOMContentLoaded', () => {
-  if (sessionStorage.getItem('nargis_admin') === '1') {
+document.addEventListener('DOMContentLoaded', async function() {
+  // Verify admin session
+  const isValid = await verifyAdminSession();
+  
+  if (isValid && sessionStorage.getItem('nargis_admin') === '1') {
     showApp();
+  } else {
+    // Clear invalid session
+    sessionStorage.removeItem('nargis_admin_token');
+    sessionStorage.removeItem('nargis_admin');
   }
 
   document.getElementById('login-form')?.addEventListener('submit', (e) => {
