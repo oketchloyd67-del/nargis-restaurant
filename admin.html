@@ -36,11 +36,19 @@
 <!-- ══════════════ ADMIN APP ══════════════ -->
 <div id="admin-app">
 
+  <!-- MOBILE SIDEBAR TOGGLE -->
+  <button class="mobile-sidebar-toggle" id="mobile-sidebar-toggle" aria-label="Toggle Sidebar">
+    <span></span>
+    <span></span>
+    <span></span>
+  </button>
+
   <!-- SIDEBAR -->
-  <aside class="admin-sidebar">
+  <aside class="admin-sidebar" id="admin-sidebar">
     <div class="sidebar-brand">
       <h2>Nargis<span>.</span></h2>
       <p>Admin Dashboard</p>
+      <button class="sidebar-close" id="sidebar-close" aria-label="Close Sidebar">✕</button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Main</div>
@@ -356,6 +364,9 @@
     </div>
   </div>
 </div>
+
+<!-- ── SIDEBAR OVERLAY ── -->
+<div id="sidebar-overlay" class="sidebar-overlay"></div>
 
 <script src="admin.js"></script>
 </body>

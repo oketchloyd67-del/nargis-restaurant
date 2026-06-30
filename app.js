@@ -196,8 +196,8 @@ function changeQty(id, delta) {
 
 function getCartTotals() {
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-  const tax = Math.round(subtotal * 0.16);
-  return { subtotal, tax, total: subtotal + tax };
+  // VAT removed - only show subtotal
+  return { subtotal, total: subtotal };
 }
 
 function renderCart() {
@@ -229,10 +229,9 @@ function renderCart() {
     </div>
   `).join('');
 
-  const { subtotal, tax, total } = getCartTotals();
+  const { subtotal, total } = getCartTotals();
   totalsEl.innerHTML = `
     <div class="cart-total-row"><span>Subtotal</span><span>${fmt(subtotal)}</span></div>
-    <div class="cart-total-row"><span>VAT (16%)</span><span>${fmt(tax)}</span></div>
     <div class="cart-total-row grand"><span>Total</span><span>${fmt(total)}</span></div>
     <button class="btn-checkout" onclick="openPayment('order')">Pay Now →</button>
   `;
