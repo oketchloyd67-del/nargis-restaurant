@@ -5,7 +5,6 @@
 
 // ── CONFIG ──
 // Get backend URL from environment or use default
-// In production, this is set via Render environment variable
 const BACKEND_URL = window.BACKEND_URL || '';
 
 let currentPanel = 'dashboard';
@@ -32,7 +31,6 @@ async function login() {
   err.style.display = 'none';
 
   try {
-    // Use full backend URL if available, otherwise use relative path
     const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/login` : '/api/admin/login';
     console.log('📤 Sending login request to:', url);
     
@@ -50,13 +48,16 @@ async function login() {
 
     console.log('📥 Response status:', response.status);
     
+    // ✅ FIX: Read response body ONCE as text first, then parse
+    const responseText = await response.text();
+    console.log('📥 Response text:', responseText);
+    
     let result;
     try {
-      result = await response.json();
+      result = JSON.parse(responseText);
     } catch (e) {
-      const text = await response.text();
-      console.error('❌ Non-JSON response:', text);
-      throw new Error('Server returned invalid response');
+      console.error('❌ Failed to parse JSON:', e);
+      throw new Error('Server returned invalid response format');
     }
     
     console.log('📥 Response data:', result);
@@ -115,9 +116,19 @@ async function verifyAdminSession() {
       }
     });
     
-    const result = await response.json();
-    console.log('Verify response:', result);
+    // ✅ FIX: Read response body ONCE
+    const responseText = await response.text();
+    console.log('Verify response text:', responseText);
     
+    let result;
+    try {
+      result = JSON.parse(responseText);
+    } catch (e) {
+      console.error('❌ Failed to parse verify response:', e);
+      return false;
+    }
+    
+    console.log('Verify response:', result);
     return response.ok;
   } catch (error) {
     console.error('Session verification error:', error);
