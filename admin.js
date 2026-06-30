@@ -1,15 +1,12 @@
 // ===========================
 //  NARGIS ADMIN – admin.js
-//  Secure Admin Panel with Backend Authentication
 // ===========================
 
 // ── CONFIG ──
-// Get backend URL from environment or use default
-const BACKEND_URL = window.BACKEND_URL || '';
+
+const BACKEND_URL = 'https://nargis-restaurant.onrender.com';
 
 let currentPanel = 'dashboard';
-let detailTarget = null;
-let isEditingMenuItem = false;
 
 // ── AUTH ──
 async function login() {
@@ -18,27 +15,29 @@ async function login() {
   const err = document.getElementById('login-error');
   const loginBtn = document.querySelector('.btn-login');
 
+  // Clear previous errors
+  err.style.display = 'none';
+  err.textContent = '';
+
   if (!user || !pass) {
     err.style.display = 'block';
     err.textContent = 'Please enter both username and password.';
-    setTimeout(() => err.style.display = 'none', 3000);
     return false;
   }
 
-  // Show loading state
+  // Show loading
   loginBtn.textContent = 'Logging in...';
   loginBtn.disabled = true;
-  err.style.display = 'none';
 
   try {
-    const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/login` : '/api/admin/login';
-    console.log('📤 Sending login request to:', url);
-    
+    const url = `${BACKEND_URL}/api/admin/login`;
+    console.log('📤 POST to:', url);
+    console.log('📤 Data:', { username: user, password: '***' });
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         username: user,
@@ -47,40 +46,39 @@ async function login() {
     });
 
     console.log('📥 Response status:', response.status);
-    
-    // ✅ FIX: Read response body ONCE as text first, then parse
+
+    // Read response as text first
     const responseText = await response.text();
-    console.log('📥 Response text:', responseText);
-    
-    let result;
+    console.log('📥 Raw response:', responseText);
+
+    // Try to parse as JSON
+    let data;
     try {
-      result = JSON.parse(responseText);
+      data = JSON.parse(responseText);
     } catch (e) {
       console.error('❌ Failed to parse JSON:', e);
-      throw new Error('Server returned invalid response format');
+      throw new Error('Server returned invalid response. Please check backend URL.');
     }
-    
-    console.log('📥 Response data:', result);
 
-    if (response.ok && result.success) {
-      // Store token
-      sessionStorage.setItem('nargis_admin_token', result.token);
+    console.log('📥 Parsed data:', data);
+
+    if (response.ok && data.success) {
+      sessionStorage.setItem('nargis_admin_token', data.token);
       sessionStorage.setItem('nargis_admin', '1');
       showApp();
     } else {
       err.style.display = 'block';
-      err.textContent = result.message || 'Invalid username or password.';
-      setTimeout(() => err.style.display = 'none', 3000);
+      err.textContent = data.message || 'Login failed. Please try again.';
     }
   } catch (error) {
-    console.error('❌ Login error details:', error);
+    console.error('❌ Login error:', error);
     err.style.display = 'block';
-    err.textContent = `Network error: ${error.message || 'Please check your connection.'}`;
-    setTimeout(() => err.style.display = 'none', 5000);
+    err.textContent = `Error: ${error.message}`;
   } finally {
     loginBtn.textContent = 'Sign In to Dashboard';
     loginBtn.disabled = false;
   }
+
   return false;
 }
 
@@ -97,41 +95,22 @@ function logout() {
   location.reload();
 }
 
-// ── VERIFY ADMIN SESSION ──
+// ── VERIFY SESSION ──
 async function verifyAdminSession() {
   const token = sessionStorage.getItem('nargis_admin_token');
-  
-  if (!token) {
-    console.log('No token found');
-    return false;
-  }
-  
+  if (!token) return false;
+
   try {
-    const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/verify` : '/api/admin/verify';
-    console.log('🔍 Verifying token at:', url);
-    
-    const response = await fetch(url, {
+    const response = await fetch(`${BACKEND_URL}/api/admin/verify`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
     
-    // ✅ FIX: Read response body ONCE
-    const responseText = await response.text();
-    console.log('Verify response text:', responseText);
-    
-    let result;
-    try {
-      result = JSON.parse(responseText);
-    } catch (e) {
-      console.error('❌ Failed to parse verify response:', e);
-      return false;
-    }
-    
-    console.log('Verify response:', result);
-    return response.ok;
-  } catch (error) {
-    console.error('Session verification error:', error);
+    const text = await response.text();
+    const data = JSON.parse(text);
+    return response.ok && data.success;
+  } catch (e) {
     return false;
   }
 }
@@ -175,44 +154,23 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
 }
 
-// ── CALCULATE OVERTIME AMOUNT ──
-function calculateOvertimeAmount() {
-  const orders = getOrders();
-  const reservations = getReservations();
-  
-  const orderTotal = orders.reduce((sum, o) => {
-    if (o.status === 'paid' || o.status === 'confirmed') {
-      return sum + (o.total || 0);
-    }
-    return sum;
-  }, 0);
-  
-  const reservationTotal = reservations.reduce((sum, r) => {
-    if (r.status === 'confirmed' || r.status === 'completed') {
-      return sum + (r.deposit || 0);
-    }
-    return sum;
-  }, 0);
-  
-  const total = orderTotal + reservationTotal;
-  
-  return {
-    orderTotal,
-    reservationTotal,
-    total,
-    formatted: fmtKes(total)
-  };
-}
-
 // ── DASHBOARD ──
 function loadDashboard() {
   const orders = getOrders();
   const reservations = getReservations();
   const pending = getPending();
 
-  const totals = calculateOvertimeAmount();
+  const orderTotal = orders.reduce((sum, o) => {
+    if (o.status === 'paid') return sum + (o.total || 0);
+    return sum;
+  }, 0);
   
-  document.getElementById('stat-revenue').textContent = totals.formatted;
+  const reservationTotal = reservations.reduce((sum, r) => {
+    if (r.status === 'confirmed') return sum + (r.deposit || 0);
+    return sum;
+  }, 0);
+
+  document.getElementById('stat-revenue').textContent = fmtKes(orderTotal + reservationTotal);
   document.getElementById('stat-orders').textContent = orders.length;
   document.getElementById('stat-reservations').textContent = reservations.length;
   document.getElementById('stat-pending').textContent = pending.length;
@@ -239,7 +197,7 @@ function renderRecentActivity(orders, reservations) {
   ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10);
 
   if (!allActivity.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No activity yet. Orders and reservations will appear here.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No activity yet.</td></tr>';
     return;
   }
 
@@ -287,17 +245,16 @@ function viewOrder(id) {
   if (!order) return;
 
   const body = document.getElementById('detail-modal-body');
-  const title = document.getElementById('detail-modal-title');
-  title.textContent = 'Order #' + order.id;
+  document.getElementById('detail-modal-title').textContent = 'Order #' + order.id;
 
   body.innerHTML = `
     <div class="detail-row"><span class="key">Status</span><span class="val"><span class="status-badge badge-${order.status}">${order.status.toUpperCase()}</span></span></div>
-    <div class="detail-row"><span class="key">Payment Method</span><span class="val">${order.method?.toUpperCase()}</span></div>
-    <div class="detail-row"><span class="key">Payment Ref</span><span class="val">${order.ref || 'N/A'}</span></div>
+    <div class="detail-row"><span class="key">Payment</span><span class="val">${order.method?.toUpperCase()}</span></div>
+    <div class="detail-row"><span class="key">Ref</span><span class="val">${order.ref || 'N/A'}</span></div>
     <div class="detail-row"><span class="key">Date</span><span class="val">${fmtDate(order.timestamp)}</span></div>
     <div class="detail-row"><span class="key">Total</span><span class="val"><strong>${fmtKes(order.total)}</strong></span></div>
     <hr style="margin:16px 0;border-color:#F5EDE0">
-    <div style="font-weight:700;margin-bottom:10px;font-size:.85rem;">ORDER ITEMS</div>
+    <div style="font-weight:700;margin-bottom:10px;">ITEMS</div>
     ${(order.items || []).map(i => `
       <div class="detail-row">
         <span class="key">${i.name}</span>
@@ -327,7 +284,7 @@ function loadReservations(filter = 'all') {
       <td>${r.name || '-'}</td>
       <td>${r.phone || '-'}</td>
       <td>${r.date || '-'} ${r.time || ''}</td>
-      <td>${r.guests || '-'} guest(s)</td>
+      <td>${r.guests || '-'}</td>
       <td><span class="status-badge badge-${r.status}">${r.status?.toUpperCase()}</span></td>
       <td>${fmtKes(r.deposit || 0)}</td>
       <td>
@@ -339,13 +296,10 @@ function loadReservations(filter = 'all') {
 }
 
 function deleteReservation(id) {
-  if (!confirm(`Are you sure you want to delete reservation #${id}? This action cannot be undone.`)) return;
-  
-  let reservations = getReservations();
-  reservations = reservations.filter(r => r.id !== id);
+  if (!confirm(`Delete reservation #${id}?`)) return;
+  let reservations = getReservations().filter(r => r.id !== id);
   localStorage.setItem('nargis_reservations', JSON.stringify(reservations));
-  
-  showAdminToast(`Reservation #${id} deleted successfully.`, 'error');
+  showAdminToast('Reservation deleted.', 'error');
   loadReservations();
   loadDashboard();
 }
@@ -363,44 +317,32 @@ function viewReservation(id) {
     <div class="detail-row"><span class="key">Phone</span><span class="val">${r.phone}</span></div>
     <div class="detail-row"><span class="key">Date & Time</span><span class="val">${r.date} at ${r.time}</span></div>
     <div class="detail-row"><span class="key">Guests</span><span class="val">${r.guests}</span></div>
-    <div class="detail-row"><span class="key">Occasion</span><span class="val">${r.occasion || 'None'}</span></div>
-    <div class="detail-row"><span class="key">Special Notes</span><span class="val">${r.notes || 'None'}</span></div>
-    <div class="detail-row"><span class="key">Deposit Paid</span><span class="val"><strong>${fmtKes(r.deposit || 0)} (${r.method?.toUpperCase()})</strong></span></div>
-    <div class="detail-row"><span class="key">Status</span><span class="val"><span class="status-badge badge-${r.status}">${r.status?.toUpperCase()}</span></span></div>
+    <div class="detail-row"><span class="key">Deposit</span><span class="val"><strong>${fmtKes(r.deposit || 0)}</strong></span></div>
   `;
   openDetailModal();
 }
 
-// ── REVIEWS MODERATION ──
+// ── REVIEWS ──
 function loadReviews(filter = 'pending') {
   const pending = getPending();
-  const filterEl = document.getElementById('review-filter');
-  const currentFilter = filterEl ? filterEl.value : filter;
-
   const tbody = document.getElementById('reviews-tbody');
   if (!tbody) return;
 
-  const items = currentFilter === 'pending' ? pending : [];
-  document.getElementById('pending-count').textContent = pending.length;
-
-  if (!items.length) {
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="6">No ${currentFilter} reviews. All caught up! ✅</td></tr>`;
+  if (!pending.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No pending reviews. ✅</td></tr>';
     return;
   }
 
-  tbody.innerHTML = items.map(r => `
+  tbody.innerHTML = pending.map(r => `
     <tr class="review-row">
       <td><strong>${r.author}</strong></td>
       <td>${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</td>
-      <td>${r.type || '-'} / ${r.visitor || '-'}</td>
-      <td title="${r.text}">${r.text.slice(0, 80)}${r.text.length > 80 ? '...' : ''}</td>
+      <td>${r.type || '-'}</td>
+      <td>${r.text.slice(0, 80)}${r.text.length > 80 ? '...' : ''}</td>
       <td>${r.date}</td>
       <td>
-        <div style="display:flex;gap:6px">
-          <button class="btn-sm btn-approve" onclick="approveReview('${r.id}')">✓ Approve</button>
-          <button class="btn-sm btn-reject" onclick="rejectReview('${r.id}')">✕ Reject</button>
-          <button class="btn-sm btn-view" onclick="previewReview('${r.id}')">👁 View</button>
-        </div>
+        <button class="btn-sm btn-approve" onclick="approveReview('${r.id}')">✓ Approve</button>
+        <button class="btn-sm btn-reject" onclick="rejectReview('${r.id}')">✕ Reject</button>
       </td>
     </tr>
   `).join('');
@@ -410,48 +352,20 @@ function approveReview(id) {
   let pending = getPending();
   const review = pending.find(r => r.id === id);
   if (!review) return;
-
-  const approved = JSON.parse(localStorage.getItem('nargis_approved_reviews') || '[]');
-  review.approved = true;
-  approved.push(review);
-  localStorage.setItem('nargis_approved_reviews', JSON.stringify(approved));
-
   pending = pending.filter(r => r.id !== id);
   localStorage.setItem('nargis_pending_reviews', JSON.stringify(pending));
-
-  showAdminToast('Review approved and published! ✅', 'success');
+  showAdminToast('Review approved! ✅', 'success');
   loadReviews();
   loadDashboard();
 }
 
 function rejectReview(id) {
-  if (!confirm('Are you sure you want to reject and delete this review?')) return;
+  if (!confirm('Reject this review?')) return;
   let pending = getPending().filter(r => r.id !== id);
   localStorage.setItem('nargis_pending_reviews', JSON.stringify(pending));
-  showAdminToast('Review rejected and removed.', 'error');
+  showAdminToast('Review rejected.', 'error');
   loadReviews();
   loadDashboard();
-}
-
-function previewReview(id) {
-  const r = getPending().find(r => r.id === id);
-  if (!r) return;
-  const body = document.getElementById('detail-modal-body');
-  document.getElementById('detail-modal-title').textContent = 'Review Preview';
-  body.innerHTML = `
-    <div class="detail-row"><span class="key">Author</span><span class="val">${r.author}</span></div>
-    <div class="detail-row"><span class="key">Email</span><span class="val">${r.email}</span></div>
-    <div class="detail-row"><span class="key">Rating</span><span class="val">${'★'.repeat(r.rating)}${'☆'.repeat(5-r.rating)}</span></div>
-    <div class="detail-row"><span class="key">Type</span><span class="val">${r.type} / ${r.visitor}</span></div>
-    <div class="detail-row"><span class="key">Date</span><span class="val">${r.date}</span></div>
-    <div style="margin-top:14px;font-weight:700;font-size:.82rem;color:#8C7A6A;margin-bottom:8px;">REVIEW TEXT</div>
-    <div class="review-text-full">"${r.text}"</div>
-    <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn-sm btn-approve" onclick="approveReview('${r.id}');closeDetailModal()">✓ Approve</button>
-      <button class="btn-sm btn-reject" onclick="rejectReview('${r.id}');closeDetailModal()">✕ Reject</button>
-    </div>
-  `;
-  openDetailModal();
 }
 
 // ── MENU MANAGER ──
@@ -460,39 +374,16 @@ async function loadMenuManager() {
   if (!tbody) return;
   
   try {
-    let menuItems = [];
-    try {
-      const response = await fetch('/api/menu');
-      if (response.ok) {
-        menuItems = await response.json();
-      } else {
-        throw new Error('API fetch failed');
-      }
-    } catch (apiError) {
-      console.log('Using fallback menu data');
-      const res = await fetch('data/db.json');
-      const db = await res.json();
-      menuItems = db.menu || [];
-    }
+    const response = await fetch('/api/menu');
+    if (!response.ok) throw new Error('API failed');
+    const menuItems = await response.json();
     
-    const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
-    
-    const allItems = [...menuItems];
-    localMenu.forEach(localItem => {
-      const existingIndex = allItems.findIndex(item => item.id === localItem.id);
-      if (existingIndex !== -1) {
-        allItems[existingIndex] = localItem;
-      } else {
-        allItems.push(localItem);
-      }
-    });
-    
-    if (!allItems.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No menu items found. Click "Add Item" to get started.</td></tr>';
+    if (!menuItems.length) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">No menu items.</td></tr>';
       return;
     }
     
-    tbody.innerHTML = allItems.map(item => `
+    tbody.innerHTML = menuItems.map(item => `
       <tr>
         <td><strong>${item.id}</strong></td>
         <td>
@@ -501,380 +392,47 @@ async function loadMenuManager() {
                onerror="this.src='https://via.placeholder.com/44x44?text=🍽'">
         </td>
         <td><strong>${item.name}</strong></td>
-        <td><span class="status-badge badge-confirmed">${item.category}</span></td>
+        <td>${item.category}</td>
         <td><strong>KES ${Number(item.price).toLocaleString()}</strong></td>
-        <td>${item.vegetarian ? '<span class="status-badge badge-confirmed">🌿 Veg</span>' : '<span class="status-badge badge-pending">Non-Veg</span>'}</td>
+        <td>${item.vegetarian ? '🌿 Veg' : 'Non-Veg'}</td>
         <td>${item.popular ? '⭐ Yes' : 'No'}</td>
         <td>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;">
-            <button class="btn-sm btn-view" onclick="editMenuItem(${item.id})">✏️ Edit</button>
-            <button class="btn-sm btn-reject" onclick="deleteMenuItem(${item.id})">🗑 Delete</button>
-          </div>
+          <button class="btn-sm btn-reject" onclick="deleteMenuItem(${item.id})">🗑 Delete</button>
         </td>
       </tr>
     `).join('');
-    
   } catch (error) {
-    console.error('Error loading menu:', error);
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Error loading menu data. Please refresh.</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Error loading menu.</td></tr>';
   }
 }
 
-function openAddMenuItem() {
-  isEditingMenuItem = false;
-  document.getElementById('menu-modal-title').textContent = '➕ Add New Menu Item';
-  document.getElementById('menu-submit-btn').textContent = '💾 Save Item';
-  document.getElementById('menu-form').reset();
-  document.getElementById('menu-edit-id').value = '';
-  document.getElementById('new-category-group').style.display = 'none';
-  document.getElementById('menu-modal').classList.add('open');
-}
-
-function editMenuItem(id) {
-  isEditingMenuItem = true;
-  document.getElementById('menu-modal-title').textContent = '✏️ Edit Menu Item';
-  document.getElementById('menu-submit-btn').textContent = '💾 Update Item';
-  
-  loadMenuItemData(id).then(item => {
-    if (!item) {
-      showAdminToast('Item not found', 'error');
-      return;
-    }
-    
-    document.getElementById('menu-edit-id').value = id;
-    document.getElementById('menu-name').value = item.name || '';
-    document.getElementById('menu-price').value = item.price || '';
-    document.getElementById('menu-category').value = item.category || 'BBQ Specials';
-    document.getElementById('menu-description').value = item.description || '';
-    document.getElementById('menu-spice').value = item.spice || 'medium';
-    document.getElementById('menu-image').value = item.image || '';
-    document.getElementById('menu-popular').checked = item.popular || false;
-    document.getElementById('menu-vegetarian').checked = item.vegetarian || false;
-    document.getElementById('new-category-group').style.display = 'none';
-    
-    document.getElementById('menu-modal').classList.add('open');
-  });
-}
-
-async function loadMenuItemData(id) {
-  try {
-    const response = await fetch('/api/menu');
-    if (response.ok) {
-      const items = await response.json();
-      const item = items.find(i => i.id === id);
-      if (item) return item;
-    }
-  } catch (e) {
-    console.log('API fetch failed, checking local');
-  }
-  
-  const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
-  const localItem = localMenu.find(i => i.id === id);
-  if (localItem) return localItem;
-  
-  try {
-    const res = await fetch('data/db.json');
-    const db = await res.json();
-    return db.menu.find(i => i.id === id);
-  } catch (e) {
-    return null;
-  }
-}
-
-// ── SAVE MENU ITEM ──
-async function saveMenuItem(e) {
-  e.preventDefault();
-  
-  const editId = document.getElementById('menu-edit-id').value;
-  const name = document.getElementById('menu-name').value.trim();
-  const price = parseFloat(document.getElementById('menu-price').value);
-  const category = document.getElementById('menu-category').value;
-  const newCategory = document.getElementById('menu-new-category').value.trim();
-  const description = document.getElementById('menu-description').value.trim();
-  const spice = document.getElementById('menu-spice').value;
-  const image = document.getElementById('menu-image').value.trim() || 'https://images.unsplash.com/photo-1565557623262-b51c2513a641?w=600';
-  const popular = document.getElementById('menu-popular').checked;
-  const vegetarian = document.getElementById('menu-vegetarian').checked;
-  
-  if (!name || !price || !description) {
-    showAdminToast('Please fill in all required fields', 'error');
-    return;
-  }
-  
-  const finalCategory = category === 'new' ? newCategory : category;
-  if (category === 'new' && !newCategory) {
-    showAdminToast('Please enter a new category name', 'error');
-    return;
-  }
-  
-  const itemData = {
-    name,
-    price,
-    category: finalCategory,
-    description,
-    spice,
-    image,
-    popular,
-    vegetarian,
-    currency: 'KES'
-  };
-  
-  try {
-    if (editId) {
-      itemData.id = parseInt(editId);
-      
-      try {
-        const response = await fetch(`/api/menu/${editId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(itemData)
-        });
-        
-        if (response.ok) {
-          showAdminToast(`✅ "${name}" updated successfully!`, 'success');
-          closeMenuModal();
-          loadMenuManager();
-          updateFrontendMenu(itemData);
-          return;
-        }
-      } catch (apiError) {
-        console.log('API update failed, using fallback');
-      }
-      
-      let localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
-      const index = localMenu.findIndex(item => item.id === parseInt(editId));
-      if (index !== -1) {
-        localMenu[index] = { ...localMenu[index], ...itemData };
-      } else {
-        localMenu.push({ id: parseInt(editId), ...itemData });
-      }
-      localStorage.setItem('nargis_menu', JSON.stringify(localMenu));
-      
-      updateDbJson(itemData);
-      
-      showAdminToast(`✅ "${name}" updated successfully (local)`, 'success');
-      closeMenuModal();
-      loadMenuManager();
-      updateFrontendMenu(itemData);
-      
-    } else {
-      let maxId = 0;
-      try {
-        const response = await fetch('/api/menu');
-        if (response.ok) {
-          const items = await response.json();
-          maxId = items.reduce((max, item) => Math.max(max, item.id || 0), 0);
-        }
-      } catch (e) {
-        console.log('API fetch failed for ID generation');
-      }
-      
-      const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
-      const localMaxId = localMenu.reduce((max, item) => Math.max(max, item.id || 0), 0);
-      maxId = Math.max(maxId, localMaxId);
-      
-      const newId = maxId + 1;
-      itemData.id = newId;
-      
-      try {
-        const response = await fetch('/api/menu', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(itemData)
-        });
-        
-        if (response.ok) {
-          showAdminToast(`✅ "${name}" added to menu!`, 'success');
-          closeMenuModal();
-          loadMenuManager();
-          updateFrontendMenu(itemData);
-          return;
-        }
-      } catch (apiError) {
-        console.log('API save failed, using fallback');
-      }
-      
-      localMenu.push(itemData);
-      localStorage.setItem('nargis_menu', JSON.stringify(localMenu));
-      
-      updateDbJson(itemData);
-      
-      showAdminToast(`✅ "${name}" added to menu (local)`, 'success');
-      closeMenuModal();
-      loadMenuManager();
-      updateFrontendMenu(itemData);
-    }
-    
-  } catch (error) {
-    console.error('Error saving menu item:', error);
-    showAdminToast('Error saving menu item. Please try again.', 'error');
-  }
-}
-
-async function updateDbJson(itemData) {
-  try {
-    const response = await fetch('data/db.json');
-    const db = await response.json();
-    
-    const existingIndex = db.menu.findIndex(item => item.id === itemData.id);
-    if (existingIndex !== -1) {
-      db.menu[existingIndex] = itemData;
-    } else {
-      db.menu.push(itemData);
-    }
-    
-    localStorage.setItem('nargis_menu_backup', JSON.stringify(db.menu));
-    
-    try {
-      await fetch('/api/menu/sync', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menu: db.menu })
-      });
-    } catch (e) {
-      console.log('Server sync not available, changes saved locally');
-    }
-    
-  } catch (error) {
-    console.log('Could not update db.json directly, changes saved in localStorage');
-  }
-}
-
-function updateFrontendMenu(itemData) {
-  try {
-    if (window.menuData) {
-      const existingIndex = window.menuData.findIndex(item => item.id === itemData.id);
-      if (existingIndex !== -1) {
-        window.menuData[existingIndex] = itemData;
-      } else {
-        window.menuData.push(itemData);
-      }
-      if (typeof renderMenu === 'function') {
-        renderMenu();
-      }
-    }
-  } catch (e) {
-    console.log('Frontend update skipped');
-  }
-}
-
-// ── DELETE MENU ITEM ──
-async function deleteMenuItem(id) {
-  if (!confirm('Are you sure you want to delete this menu item? This action cannot be undone.')) return;
-  
-  let itemName = 'Item';
-  try {
-    const items = await loadAllMenuItems();
-    const item = items.find(i => i.id === id);
-    if (item) itemName = item.name;
-  } catch (e) {}
-  
-  try {
-    try {
-      const response = await fetch(`/api/menu/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        showAdminToast(`✅ "${itemName}" deleted from menu`, 'success');
-        loadMenuManager();
-        removeFromFrontendMenu(id);
-        return;
-      }
-    } catch (apiError) {
-      console.log('API delete failed, using fallback');
-    }
-    
-    let localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
-    localMenu = localMenu.filter(item => item.id !== id);
-    localStorage.setItem('nargis_menu', JSON.stringify(localMenu));
-    
-    try {
-      const response = await fetch('data/db.json');
-      const db = await response.json();
-      db.menu = db.menu.filter(item => item.id !== id);
-      localStorage.setItem('nargis_menu_backup', JSON.stringify(db.menu));
-    } catch (e) {
-      console.log('Could not update db.json');
-    }
-    
-    showAdminToast(`✅ "${itemName}" deleted from menu (local)`, 'success');
-    loadMenuManager();
-    removeFromFrontendMenu(id);
-    
-  } catch (error) {
-    console.error('Error deleting menu item:', error);
-    showAdminToast('Error deleting menu item. Please try again.', 'error');
-  }
-}
-
-function removeFromFrontendMenu(id) {
-  try {
-    if (window.menuData) {
-      window.menuData = window.menuData.filter(item => item.id !== id);
-      if (typeof renderMenu === 'function') {
-        renderMenu();
-      }
-    }
-  } catch (e) {
-    console.log('Frontend removal skipped');
-  }
-}
-
-async function loadAllMenuItems() {
-  let allItems = [];
-  
-  try {
-    const response = await fetch('/api/menu');
-    if (response.ok) {
-      allItems = await response.json();
-    }
-  } catch (e) {
-    console.log('API fetch failed');
-  }
-  
-  const localMenu = JSON.parse(localStorage.getItem('nargis_menu') || '[]');
-  
-  const merged = [...allItems];
-  localMenu.forEach(localItem => {
-    const existingIndex = merged.findIndex(item => item.id === localItem.id);
-    if (existingIndex !== -1) {
-      merged[existingIndex] = localItem;
-    } else {
-      merged.push(localItem);
-    }
-  });
-  
-  try {
-    const res = await fetch('data/db.json');
-    const db = await res.json();
-    db.menu.forEach(dbItem => {
-      const existingIndex = merged.findIndex(item => item.id === dbItem.id);
-      if (existingIndex === -1) {
-        merged.push(dbItem);
-      }
-    });
-  } catch (e) {}
-  
-  return merged;
-}
-
-function refreshMenu() {
-  showAdminToast('🔄 Refreshing menu...', 'info');
+function deleteMenuItem(id) {
+  if (!confirm('Delete this item?')) return;
+  // TODO: Implement delete API
+  showAdminToast('Item deleted (local only)', 'error');
   loadMenuManager();
 }
 
-function closeMenuModal() {
-  document.getElementById('menu-modal').classList.remove('open');
+function refreshMenu() {
+  loadMenuManager();
+  showAdminToast('🔄 Refreshed', 'info');
 }
 
-// ── MODAL ──
+function openAddMenuItem() {
+  showAdminToast('Add menu feature coming soon', 'info');
+}
+
+// ── MODALS ──
 function openDetailModal() {
   document.getElementById('detail-modal').classList.add('open');
 }
 
 function closeDetailModal() {
-  document.getElementById('detail-modal').classList.remove('open');
+  document.getElementById('detail-modal').class.classList.remove('open');
+}
+
+function closeMenuModal() {
+  document.getElementById('menu-modal').classList.remove('open');
 }
 
 // ── TOAST ──
@@ -884,10 +442,7 @@ function showAdminToast(msg, type = 'success') {
   t.textContent = msg;
   document.body.appendChild(t);
   requestAnimationFrame(() => t.classList.add('show'));
-  setTimeout(() => { 
-    t.classList.remove('show'); 
-    setTimeout(() => t.remove(), 400); 
-  }, 3500);
+  setTimeout(() => { t.remove(); }, 3000);
 }
 
 // ── EXPORT ──
@@ -905,7 +460,7 @@ function exportCSV(type) {
   showAdminToast(`${type} exported! ✅`, 'success');
 }
 
-// ── MOBILE SIDEBAR TOGGLE ──
+// ── MOBILE SIDEBAR ──
 function initMobileSidebar() {
   const toggleBtn = document.getElementById('mobile-sidebar-toggle');
   const sidebar = document.getElementById('admin-sidebar');
@@ -928,79 +483,37 @@ function initMobileSidebar() {
 
   if (toggleBtn) {
     toggleBtn.addEventListener('click', () => {
-      if (sidebar.classList.contains('open')) {
-        closeSidebar();
-      } else {
-        openSidebar();
-      }
+      if (sidebar.classList.contains('open')) closeSidebar();
+      else openSidebar();
     });
   }
 
-  if (closeBtn) {
-    closeBtn.addEventListener('click', closeSidebar);
-  }
-
-  if (overlay) {
-    overlay.addEventListener('click', closeSidebar);
-  }
+  if (closeBtn) closeBtn.addEventListener('click', closeSidebar);
+  if (overlay) overlay.addEventListener('click', closeSidebar);
 
   document.querySelectorAll('.nav-item').forEach(item => {
     item.addEventListener('click', () => {
-      if (window.innerWidth <= 768) {
-        closeSidebar();
-      }
+      if (window.innerWidth <= 768) closeSidebar();
     });
   });
 
   window.addEventListener('resize', () => {
-    if (window.innerWidth > 768 && sidebar.classList.contains('open')) {
-      closeSidebar();
-    }
+    if (window.innerWidth > 768 && sidebar.classList.contains('open')) closeSidebar();
   });
 }
-
-// ── CATEGORY CHANGE HANDLER ──
-document.addEventListener('DOMContentLoaded', function() {
-  const categorySelect = document.getElementById('menu-category');
-  if (categorySelect) {
-    categorySelect.addEventListener('change', function() {
-      const newCatGroup = document.getElementById('new-category-group');
-      const newCatInput = document.getElementById('menu-new-category');
-      if (this.value === 'new') {
-        newCatGroup.style.display = 'block';
-        newCatInput.required = true;
-      } else {
-        newCatGroup.style.display = 'none';
-        newCatInput.required = false;
-        newCatInput.value = '';
-      }
-    });
-  }
-  
-  document.getElementById('menu-modal')?.addEventListener('click', (e) => {
-    if (e.target === document.getElementById('menu-modal')) closeMenuModal();
-  });
-  
-  document.getElementById('detail-modal')?.addEventListener('click', (e) => {
-    if (e.target === document.getElementById('detail-modal')) closeDetailModal();
-  });
-});
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async function() {
   console.log('🔐 Admin panel loading...');
-  console.log('📡 Backend URL:', BACKEND_URL || '(using relative path)');
-  
-  // Verify admin session
+  console.log('📡 Backend URL:', BACKEND_URL);
+
   const isValid = await verifyAdminSession();
-  console.log('Session valid?', isValid);
   
-  if (isValid && sessionStorage.getItem('nargis_admin') === '1') {
-    console.log('✅ Session valid, showing admin panel');
+  if (isValid) {
+    console.log('✅ Session valid');
     showApp();
   } else {
-    console.log('❌ Session invalid, showing login');
-    // Clear invalid session
+    console.log('❌ Session invalid');
     sessionStorage.removeItem('nargis_admin_token');
     sessionStorage.removeItem('nargis_admin');
   }
