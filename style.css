@@ -838,3 +838,147 @@ footer {
     display: none;
   }
 }
+
+/* ── FIX: Prevent hero actions from overlapping reviews ── */
+
+/* Add spacing between sections */
+#hero {
+  position: relative;
+  height: 100vh;
+  min-height: 680px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: var(--charcoal);
+  margin-bottom: 0;
+}
+
+/* Ensure hero content stays within bounds */
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 680px;
+  animation: fadeUp .8s ease both;
+  padding-bottom: 20px;
+}
+
+/* Hero actions - keep them contained */
+.hero-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+/* Gallery strip - add clear separation */
+#gallery-strip {
+  display: flex;
+  overflow: hidden;
+  height: 280px;
+  gap: 4px;
+  clear: both;
+  position: relative;
+  z-index: 1;
+}
+
+/* About section - ensure proper spacing */
+#about {
+  background: var(--charcoal);
+  color: var(--white);
+  padding: 96px 0;
+  clear: both;
+}
+
+/* Reviews section - ensure it starts after hero */
+#reviews {
+  background: var(--charcoal);
+  padding: 96px 0;
+  clear: both;
+}
+
+/* Fix for hero stats positioning */
+.hero-stats {
+  position: absolute;
+  bottom: 48px;
+  right: 0;
+  display: flex;
+  gap: 0;
+  background: rgba(26,18,8,.8);
+  backdrop-filter: blur(8px);
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  overflow: hidden;
+  z-index: 5;
+}
+
+/* Responsive fixes */
+@media (max-width: 768px) {
+  #hero {
+    min-height: 600px;
+    height: auto;
+    padding: 120px 0 40px;
+  }
+  
+  .hero-stats {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    margin-top: 30px;
+    border-radius: var(--r-md);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .hero-stat {
+    padding: 12px 20px;
+    border-right: 1px solid rgba(255,255,255,.08);
+  }
+  
+  .hero-stat:last-child {
+    border-right: none;
+  }
+  
+  .hero-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .hero-actions .btn-primary,
+  .hero-actions .btn-outline {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  #hero {
+    min-height: 500px;
+    padding: 100px 0 30px;
+  }
+  
+  .hero-title {
+    font-size: 2.2rem;
+  }
+  
+  .hero-tagline {
+    font-size: 0.95rem;
+  }
+  
+  .hero-stats {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+  }
+  
+  .hero-stat {
+    padding: 10px 16px;
+    min-width: 80px;
+  }
+  
+  .hero-stat-num {
+    font-size: 1.2rem;
+  }
+  
+  .hero-stat-label {
+    font-size: 0.6rem;
+  }
+}
