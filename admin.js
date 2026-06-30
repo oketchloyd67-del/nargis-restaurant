@@ -3,6 +3,9 @@
 //  Secure Admin Panel with Backend Authentication
 // ===========================
 
+// ── CONFIG ──
+const BACKEND_URL = window.BACKEND_URL || '';
+
 let currentPanel = 'dashboard';
 let detailTarget = null;
 let isEditingMenuItem = false;
@@ -12,6 +15,7 @@ async function login() {
   const user = document.getElementById('admin-user').value.trim();
   const pass = document.getElementById('admin-pass').value;
   const err = document.getElementById('login-error');
+  const loginBtn = document.querySelector('.btn-login');
 
   if (!user || !pass) {
     err.style.display = 'block';
@@ -20,12 +24,19 @@ async function login() {
     return false;
   }
 
+  // Show loading state
+  loginBtn.textContent = 'Logging in...';
+  loginBtn.disabled = true;
+
   try {
-    // Send login request to backend
-    const response = await fetch('/api/admin/login', {
+    const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/login` : '/api/admin/login';
+    console.log('📤 Sending login request to:', url);
+    
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
       body: JSON.stringify({
         username: user,
@@ -33,10 +44,12 @@ async function login() {
       })
     });
 
+    console.log('📥 Response status:', response.status);
     const result = await response.json();
+    console.log('📥 Response data:', result);
 
-    if (result.success) {
-      // Store token in session
+    if (response.ok && result.success) {
+      // Store token
       sessionStorage.setItem('nargis_admin_token', result.token);
       sessionStorage.setItem('nargis_admin', '1');
       showApp();
@@ -46,10 +59,13 @@ async function login() {
       setTimeout(() => err.style.display = 'none', 3000);
     }
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('❌ Login error:', error);
     err.style.display = 'block';
-    err.textContent = 'Network error. Please try again.';
-    setTimeout(() => err.style.display = 'none', 3000);
+    err.textContent = 'Network error. Please check your connection and try again.';
+    setTimeout(() => err.style.display = 'none', 4000);
+  } finally {
+    loginBtn.textContent = 'Sign In to Dashboard';
+    loginBtn.disabled = false;
   }
   return false;
 }
@@ -72,15 +88,20 @@ async function verifyAdminSession() {
   const token = sessionStorage.getItem('nargis_admin_token');
   
   if (!token) {
+    console.log('No token found');
     return false;
   }
   
   try {
-    const response = await fetch('/api/admin/verify', {
+    const url = BACKEND_URL ? `${BACKEND_URL}/api/admin/verify` : '/api/admin/verify';
+    const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
     });
+    
+    const result = await response.json();
+    console.log('Verify response:', result);
     
     return response.ok;
   } catch (error) {
@@ -941,12 +962,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── INIT ──
 document.addEventListener('DOMContentLoaded', async function() {
+  console.log('🔐 Admin panel loading...');
+  
   // Verify admin session
   const isValid = await verifyAdminSession();
+  console.log('Session valid?', isValid);
   
   if (isValid && sessionStorage.getItem('nargis_admin') === '1') {
+    console.log('✅ Session valid, showing admin panel');
     showApp();
   } else {
+    console.log('❌ Session invalid, showing login');
     // Clear invalid session
     sessionStorage.removeItem('nargis_admin_token');
     sessionStorage.removeItem('nargis_admin');
